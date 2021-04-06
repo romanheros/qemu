@@ -65,5 +65,8 @@ config MCHP_PFSOC_MMUART
 config SIFIVE_UART
     bool
 
+config THEAD_UART
+    bool
+
 config GOLDFISH_TTY
     bool

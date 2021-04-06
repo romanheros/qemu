@@ -71,6 +71,9 @@ config SIFIVE_PLIC
 config RISCV_CLIC
     bool
 
+config THEAD_CLINT
+    bool
+
 config GOLDFISH_PIC
     bool
 

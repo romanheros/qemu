@@ -54,3 +54,7 @@ config SSE_TIMER
 
 config AVR_TIMER16
     bool
+
+config THEAD_TIMER
+    bool
+    select PTIMER
