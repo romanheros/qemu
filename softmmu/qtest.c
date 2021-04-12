@@ -323,6 +323,17 @@ static void qtest_irq_handler(void *opaque, int n, int level)
         CharBackend *chr = &qtest_chr;
         irq_levels[n] = level;
         qtest_send_prefix(chr);
+        /* FIXME: send delivered irq num */
+        if (level > 1) {
+            int delivered_irq_num = level & 0xfff;
+            int pin_level = level >> 12;
+            qtest_sendf(chr, "IRQ %s %d\n",
+                        "delivered", delivered_irq_num);
+            qtest_send_prefix(chr);
+            qtest_sendf(chr, "IRQ %s %d\n",
+                    pin_level ? "raise" : "lower", n);
+            return;
+        }
         qtest_sendf(chr, "IRQ %s %d\n",
                     level ? "raise" : "lower", n);
     }
@@ -395,16 +406,17 @@ static void qtest_process_command(CharBackend *chr, gchar **words)
             return;
         }
 
-        if (irq_intercept_dev) {
-            qtest_send_prefix(chr);
-            if (irq_intercept_dev != dev) {
-                qtest_send(chr, "FAIL IRQ intercept already enabled\n");
-            } else {
-                qtest_send(chr, "OK\n");
-            }
-            return;
-        }
-
+/**
+ *      if (irq_intercept_dev) {
+ *          qtest_send_prefix(chr);
+ *          if (irq_intercept_dev != dev) {
+ *              qtest_send(chr, "FAIL IRQ intercept already enabled\n");
+ *          } else {
+ *              qtest_send(chr, "OK\n");
+ *          }
+ *          return;
+ *      }
+ */
         QLIST_FOREACH(ngl, &dev->gpios, node) {
             /* We don't support intercept of named GPIOs yet */
             if (ngl->name) {
