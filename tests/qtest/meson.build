@@ -199,6 +199,9 @@ qtests_s390x = \
    'cpu-plug-test',
    'migration-test']
 
+qtests_riscv32 = \
+['test-riscv32-clic']
+
 qos_test_ss = ss.source_set()
 qos_test_ss.add(
   'ac97-test.c',

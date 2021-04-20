@@ -162,6 +162,11 @@ static void riscv_clic_next_interrupt(void *opaque, int hartid)
                 clic->clicintip[irq_offset] = 0;
             }
             /* Post pending interrupt for this hart */
+            /* FIXME: send delivered irq num and level to qtest */
+            if (qtest_enabled()) {
+                qemu_set_irq(clic->cpu_irqs[hartid], (active->irq | 1 << 12));
+                return;
+            }
             clic->exccode[hartid] = active->irq | mode << 12 | level << 14;
             qemu_set_irq(clic->cpu_irqs[hartid], 1);
             return;
