@@ -36,6 +36,7 @@
 #include "kvm/kvm_riscv.h"
 #include "tcg/tcg-cpu.h"
 #include "tcg/tcg.h"
+#include "cpu_decoder.h"
 
 /* RISC-V CPU definitions */
 static const char riscv_single_letter_exts[] = "IEMAFDQCPVH";
@@ -515,6 +516,7 @@ static void rv64_thead_c906_cpu_init(Object *obj)
 
     /* inherited from parent obj via riscv_cpu_init() */
     cpu->cfg.pmp = true;
+    env->decoder = thead_decoder;
 }
 
 static void rv64_veyron_v1_cpu_init(Object *obj)
@@ -555,6 +557,7 @@ static void rv64_veyron_v1_cpu_init(Object *obj)
 #ifndef CONFIG_USER_ONLY
     set_satp_mode_max_supported(cpu, VM_1_10_SV48);
 #endif
+    env->decoder = ventana_decoder;
 }
 
 static void rv128_base_cpu_init(Object *obj)
@@ -1273,6 +1276,7 @@ static void riscv_cpu_post_init(Object *obj)
 
 static void riscv_cpu_init(Object *obj)
 {
+    CPURISCVState *env = &RISCV_CPU(obj)->env;
 #ifndef CONFIG_USER_ONLY
     qdev_init_gpio_in(DEVICE(obj), riscv_cpu_set_irq,
                       IRQ_LOCAL_MAX + IRQ_LOCAL_GUEST_MAX);
@@ -1287,6 +1291,7 @@ static void riscv_cpu_init(Object *obj)
      */
     RISCV_CPU(obj)->cfg.ext_zicntr = true;
     RISCV_CPU(obj)->cfg.ext_zihpm = true;
+    env->decoder = default_decoder;
 }
 
 typedef struct misa_ext_info {

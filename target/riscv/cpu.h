@@ -31,6 +31,7 @@
 #include "cpu_cfg.h"
 #include "qapi/qapi-types-common.h"
 #include "cpu-qom.h"
+#include "cpu_decoder.h"
 
 typedef struct CPUArchState CPURISCVState;
 
@@ -436,6 +437,7 @@ struct CPUArchState {
     uint64_t kvm_timer_state;
     uint64_t kvm_timer_frequency;
 #endif /* CONFIG_KVM */
+    const struct RISCVDecoder *decoder;
 };
 
 /*

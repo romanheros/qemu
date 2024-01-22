@@ -115,6 +115,7 @@ typedef struct DisasContext {
     bool frm_valid;
     /* TCG of the current insn_start */
     TCGOp *insn_start;
+    const struct RISCVDecoder *decoder;
 } DisasContext;
 
 static inline bool has_ext(DisasContext *ctx, uint32_t ext)
@@ -1118,21 +1119,31 @@ static inline int insn_len(uint16_t first_word)
     return (first_word & 3) == 3 ? 4 : 2;
 }
 
+static bool decode_xtheadvector_stub(DisasContext *ctx, uint32_t insn)
+{
+    return true;
+}
+
+const struct RISCVDecoder thead_decoder[] = {
+    { has_xtheadvector_p, decode_xtheadvector_stub },
+    { has_xthead_p, decode_xthead },
+    { always_true_p, decode_insn32 },
+    { NULL, NULL }
+};
+
+const struct RISCVDecoder ventana_decoder[] = {
+    { has_XVentanaCondOps_p, decode_XVentanaCodeOps},
+    { always_true_p, decode_insn32 },
+    { NULL, NULL }
+};
+
+const struct RISCVDecoder default_decoder[] = {
+    { always_true_p, decode_insn32 },
+    { NULL, NULL }
+};
+
 static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
 {
-    /*
-     * A table with predicate (i.e., guard) functions and decoder functions
-     * that are tested in-order until a decoder matches onto the opcode.
-     */
-    static const struct {
-        bool (*guard_func)(const RISCVCPUConfig *);
-        bool (*decode_func)(DisasContext *, uint32_t);
-    } decoders[] = {
-        { always_true_p,  decode_insn32 },
-        { has_xthead_p, decode_xthead },
-        { has_XVentanaCondOps_p,  decode_XVentanaCodeOps },
-    };
-
     ctx->virt_inst_excp = false;
     ctx->cur_insn_len = insn_len(opcode);
     /* Check for compressed insn */
@@ -1153,9 +1164,10 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
                                              ctx->base.pc_next + 2));
         ctx->opcode = opcode32;
 
-        for (size_t i = 0; i < ARRAY_SIZE(decoders); ++i) {
-            if (decoders[i].guard_func(ctx->cfg_ptr) &&
-                decoders[i].decode_func(ctx, opcode32)) {
+        for (size_t i = 0; ctx->decoder[i].guard_func &&
+                           ctx->decoder[i].decode_func; ++i) {
+            if (ctx->decoder[i].guard_func(ctx->cfg_ptr) &&
+                ctx->decoder[i].decode_func(ctx, opcode32)) {
                 return;
             }
         }
@@ -1198,6 +1210,7 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->itrigger = FIELD_EX32(tb_flags, TB_FLAGS, ITRIGGER);
     ctx->zero = tcg_constant_tl(0);
     ctx->virt_inst_excp = false;
+    ctx->decoder = env->decoder;
 }
 
 static void riscv_tr_tb_start(DisasContextBase *db, CPUState *cpu)
