@@ -402,3 +402,34 @@ GEN_TH_LD_US(th_vlhu_v_w, uint16_t, uint32_t, ldhu_w, clearl_th)
 GEN_TH_LD_US(th_vlhu_v_d, uint16_t, uint64_t, ldhu_d, clearq_th)
 GEN_TH_LD_US(th_vlwu_v_w, uint32_t, uint32_t, ldwu_w, clearl_th)
 GEN_TH_LD_US(th_vlwu_v_d, uint32_t, uint64_t, ldwu_d, clearq_th)
+
+/* similar to GEN_GEN_VEXT_ST_US, change the function */
+#define GEN_TH_ST_US(NAME, MTYPE, ETYPE, STORE_FN)                      \
+void HELPER(NAME##_mask)(void *vd, void *v0, target_ulong base,         \
+                         CPURISCVState *env, uint32_t desc)             \
+{                                                                       \
+    uint32_t stride = th_nf(desc) * sizeof(MTYPE);                      \
+    th_ldst_stride(vd, v0, base, stride, env, desc, false, STORE_FN,    \
+                   NULL, sizeof(ETYPE), sizeof(MTYPE), GETPC());        \
+}                                                                       \
+                                                                        \
+void HELPER(NAME)(void *vd, void *v0, target_ulong base,                \
+                  CPURISCVState *env, uint32_t desc)                    \
+{                                                                       \
+    th_ldst_us(vd, base, env, desc, STORE_FN, NULL,                     \
+               sizeof(ETYPE), sizeof(MTYPE), GETPC());                  \
+}
+
+GEN_TH_ST_US(th_vsb_v_b, int8_t,  int8_t , stb_b)
+GEN_TH_ST_US(th_vsb_v_h, int8_t,  int16_t, stb_h)
+GEN_TH_ST_US(th_vsb_v_w, int8_t,  int32_t, stb_w)
+GEN_TH_ST_US(th_vsb_v_d, int8_t,  int64_t, stb_d)
+GEN_TH_ST_US(th_vsh_v_h, int16_t, int16_t, sth_h)
+GEN_TH_ST_US(th_vsh_v_w, int16_t, int32_t, sth_w)
+GEN_TH_ST_US(th_vsh_v_d, int16_t, int64_t, sth_d)
+GEN_TH_ST_US(th_vsw_v_w, int32_t, int32_t, stw_w)
+GEN_TH_ST_US(th_vsw_v_d, int32_t, int64_t, stw_d)
+GEN_TH_ST_US(th_vse_v_b, int8_t,  int8_t , ste_b)
+GEN_TH_ST_US(th_vse_v_h, int16_t, int16_t, ste_h)
+GEN_TH_ST_US(th_vse_v_w, int32_t, int32_t, ste_w)
+GEN_TH_ST_US(th_vse_v_d, int64_t, int64_t, ste_d)
