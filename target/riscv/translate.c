@@ -104,6 +104,7 @@ typedef struct DisasContext {
     bool cfg_vta_all_1s;
     bool vstart_eq_zero;
     bool vl_eq_vlmax;
+    uint16_t mlen;
     CPUState *cs;
     TCGv zero;
     /* PointerMasking extension */
@@ -1211,6 +1212,9 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->zero = tcg_constant_tl(0);
     ctx->virt_inst_excp = false;
     ctx->decoder = env->decoder;
+    if (cpu->cfg.ext_xtheadvector) {
+        ctx->mlen = 1 << (ctx->sew  + 3 - ctx->lmul);
+    }
 }
 
 static void riscv_tr_tb_start(DisasContextBase *db, CPUState *cpu)
