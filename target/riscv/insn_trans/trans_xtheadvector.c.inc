@@ -334,19 +334,96 @@ GEN_TH_TRANS(th_vssh_v, 1, rnfvm, st_stride_op_th, st_stride_check_th)
 GEN_TH_TRANS(th_vssw_v, 2, rnfvm, st_stride_op_th, st_stride_check_th)
 GEN_TH_TRANS(th_vsse_v, 3, rnfvm, st_stride_op_th, st_stride_check_th)
 
+/*
+ *** unit stride load and store
+ */
+
+#define gen_helper_ldst_us_th gen_helper_ldst_us
+
+static bool ldst_us_trans_th(uint32_t vd, uint32_t rs1, uint32_t data,
+                             gen_helper_ldst_us_th *fn, DisasContext *s,
+                             bool is_store)
+{
+    return ldst_us_trans(vd, rs1, data, fn, s, is_store);
+}
+
+/*
+ * This function is almost the copy of ld_us_op, except:
+ * 1) different data encoding
+ * 2) XTheadVector has more insns to handle zero/sign-extended.
+ */
+static bool ld_us_op_th(DisasContext *s, arg_r2nfvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_ldst_us_th *fn;
+    static gen_helper_ldst_us_th * const fns[2][7][4] = {
+        /* masked unit stride load */
+        { { gen_helper_th_vlb_v_b_mask,  gen_helper_th_vlb_v_h_mask,
+            gen_helper_th_vlb_v_w_mask,  gen_helper_th_vlb_v_d_mask },
+          { NULL,                        gen_helper_th_vlh_v_h_mask,
+            gen_helper_th_vlh_v_w_mask,  gen_helper_th_vlh_v_d_mask },
+          { NULL,                        NULL,
+            gen_helper_th_vlw_v_w_mask,  gen_helper_th_vlw_v_d_mask },
+          { gen_helper_th_vle_v_b_mask,  gen_helper_th_vle_v_h_mask,
+            gen_helper_th_vle_v_w_mask,  gen_helper_th_vle_v_d_mask },
+          { gen_helper_th_vlbu_v_b_mask, gen_helper_th_vlbu_v_h_mask,
+            gen_helper_th_vlbu_v_w_mask, gen_helper_th_vlbu_v_d_mask },
+          { NULL,                        gen_helper_th_vlhu_v_h_mask,
+            gen_helper_th_vlhu_v_w_mask, gen_helper_th_vlhu_v_d_mask },
+          { NULL,                        NULL,
+            gen_helper_th_vlwu_v_w_mask, gen_helper_th_vlwu_v_d_mask } },
+        /* unmasked unit stride load */
+        { { gen_helper_th_vlb_v_b,  gen_helper_th_vlb_v_h,
+            gen_helper_th_vlb_v_w,  gen_helper_th_vlb_v_d },
+          { NULL,                   gen_helper_th_vlh_v_h,
+            gen_helper_th_vlh_v_w,  gen_helper_th_vlh_v_d },
+          { NULL,                   NULL,
+            gen_helper_th_vlw_v_w,  gen_helper_th_vlw_v_d },
+          { gen_helper_th_vle_v_b,  gen_helper_th_vle_v_h,
+            gen_helper_th_vle_v_w,  gen_helper_th_vle_v_d },
+          { gen_helper_th_vlbu_v_b, gen_helper_th_vlbu_v_h,
+            gen_helper_th_vlbu_v_w, gen_helper_th_vlbu_v_d },
+          { NULL,                   gen_helper_th_vlhu_v_h,
+            gen_helper_th_vlhu_v_w, gen_helper_th_vlhu_v_d },
+          { NULL,                   NULL,
+            gen_helper_th_vlwu_v_w, gen_helper_th_vlwu_v_d } }
+    };
+
+    fn =  fns[a->vm][seq][s->sew];
+    if (fn == NULL) {
+        return false;
+    }
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, NF, a->nf);
+    return ldst_us_trans_th(a->rd, a->rs1, data, fn, s, false);
+}
+
+static bool ld_us_check_th(DisasContext *s, arg_r2nfvm* a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_nf(s, a->rd, a->nf));
+}
+
+GEN_TH_TRANS(th_vlb_v, 0, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlh_v, 1, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlw_v, 2, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vle_v, 3, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlbu_v, 4, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlhu_v, 5, r2nfvm, ld_us_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlwu_v, 6, r2nfvm, ld_us_op_th, ld_us_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vlb_v)
-TH_TRANS_STUB(th_vlh_v)
-TH_TRANS_STUB(th_vlw_v)
-TH_TRANS_STUB(th_vle_v)
-TH_TRANS_STUB(th_vlbu_v)
-TH_TRANS_STUB(th_vlhu_v)
-TH_TRANS_STUB(th_vlwu_v)
 TH_TRANS_STUB(th_vlbff_v)
 TH_TRANS_STUB(th_vlhff_v)
 TH_TRANS_STUB(th_vlwff_v)

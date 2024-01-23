@@ -320,3 +320,85 @@ GEN_TH_ST_STRIDE(th_vsse_v_b, int8_t,  int8_t,  ste_b)
 GEN_TH_ST_STRIDE(th_vsse_v_h, int16_t, int16_t, ste_h)
 GEN_TH_ST_STRIDE(th_vsse_v_w, int32_t, int32_t, ste_w)
 GEN_TH_ST_STRIDE(th_vsse_v_d, int64_t, int64_t, ste_d)
+
+/*
+ *** unit-stride: access elements stored contiguously in memory
+ */
+
+/* unmasked unit-stride load and store operation*/
+/*
+ * This function is almost the copy of vext_ldst_us, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different the tail elements process policy
+ */
+static void
+th_ldst_us(void *vd, target_ulong base, CPURISCVState *env, uint32_t desc,
+           th_ldst_elem_fn *ldst_elem, clear_fn *clear_elem,
+           uint32_t esz, uint32_t msz, uintptr_t ra)
+{
+    uint32_t i, k;
+    uint32_t nf = th_nf(desc);
+    uint32_t vlmax = th_maxsz(desc) / esz;
+
+    /* load bytes from guest memory */
+    for (i = env->vstart; i < env->vl; i++, env->vstart++) {
+        k = 0;
+        while (k < nf) {
+            target_ulong addr = base + (i * nf + k) * msz;
+            ldst_elem(env, adjust_addr(env, addr), i + k * vlmax, vd, ra);
+            k++;
+        }
+    }
+    env->vstart = 0;
+    /* clear tail elements */
+    if (clear_elem) {
+        for (k = 0; k < nf; k++) {
+            clear_elem(vd, env->vl + k * vlmax, env->vl * esz, vlmax * esz);
+        }
+    }
+}
+
+/*
+ * masked unit-stride load and store operation will be a special case of stride,
+ * stride = NF * sizeof (MTYPE)
+ */
+/* similar to GEN_GEN_VEXT_LD_US, change the function */
+#define GEN_TH_LD_US(NAME, MTYPE, ETYPE, LOAD_FN, CLEAR_FN)             \
+void HELPER(NAME##_mask)(void *vd, void *v0, target_ulong base,         \
+                         CPURISCVState *env, uint32_t desc)             \
+{                                                                       \
+    uint32_t stride = th_nf(desc) * sizeof(MTYPE);                      \
+    th_ldst_stride(vd, v0, base, stride, env, desc, false, LOAD_FN,     \
+                   CLEAR_FN, sizeof(ETYPE), sizeof(MTYPE), GETPC());    \
+}                                                                       \
+                                                                        \
+void HELPER(NAME)(void *vd, void *v0, target_ulong base,                \
+                  CPURISCVState *env, uint32_t desc)                    \
+{                                                                       \
+    th_ldst_us(vd, base, env, desc, LOAD_FN, CLEAR_FN,                  \
+               sizeof(ETYPE), sizeof(MTYPE), GETPC());                  \
+}
+
+GEN_TH_LD_US(th_vlb_v_b,  int8_t,   int8_t,   ldb_b,  clearb_th)
+GEN_TH_LD_US(th_vlb_v_h,  int8_t,   int16_t,  ldb_h,  clearh_th)
+GEN_TH_LD_US(th_vlb_v_w,  int8_t,   int32_t,  ldb_w,  clearl_th)
+GEN_TH_LD_US(th_vlb_v_d,  int8_t,   int64_t,  ldb_d,  clearq_th)
+GEN_TH_LD_US(th_vlh_v_h,  int16_t,  int16_t,  ldh_h,  clearh_th)
+GEN_TH_LD_US(th_vlh_v_w,  int16_t,  int32_t,  ldh_w,  clearl_th)
+GEN_TH_LD_US(th_vlh_v_d,  int16_t,  int64_t,  ldh_d,  clearq_th)
+GEN_TH_LD_US(th_vlw_v_w,  int32_t,  int32_t,  ldw_w,  clearl_th)
+GEN_TH_LD_US(th_vlw_v_d,  int32_t,  int64_t,  ldw_d,  clearq_th)
+GEN_TH_LD_US(th_vle_v_b,  int8_t,   int8_t,   lde_b,  clearb_th)
+GEN_TH_LD_US(th_vle_v_h,  int16_t,  int16_t,  lde_h,  clearh_th)
+GEN_TH_LD_US(th_vle_v_w,  int32_t,  int32_t,  lde_w,  clearl_th)
+GEN_TH_LD_US(th_vle_v_d,  int64_t,  int64_t,  lde_d,  clearq_th)
+GEN_TH_LD_US(th_vlbu_v_b, uint8_t,  uint8_t,  ldbu_b, clearb_th)
+GEN_TH_LD_US(th_vlbu_v_h, uint8_t,  uint16_t, ldbu_h, clearh_th)
+GEN_TH_LD_US(th_vlbu_v_w, uint8_t,  uint32_t, ldbu_w, clearl_th)
+GEN_TH_LD_US(th_vlbu_v_d, uint8_t,  uint64_t, ldbu_d, clearq_th)
+GEN_TH_LD_US(th_vlhu_v_h, uint16_t, uint16_t, ldhu_h, clearh_th)
+GEN_TH_LD_US(th_vlhu_v_w, uint16_t, uint32_t, ldhu_w, clearl_th)
+GEN_TH_LD_US(th_vlhu_v_d, uint16_t, uint64_t, ldhu_d, clearq_th)
+GEN_TH_LD_US(th_vlwu_v_w, uint32_t, uint32_t, ldwu_w, clearl_th)
+GEN_TH_LD_US(th_vlwu_v_d, uint32_t, uint64_t, ldwu_d, clearq_th)
