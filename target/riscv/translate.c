@@ -1103,6 +1103,8 @@ static uint32_t opcode_at(DisasContextBase *dcbase, target_ulong pc)
 #include "insn_trans/trans_rvbf16.c.inc"
 #include "decode-xthead.c.inc"
 #include "insn_trans/trans_xthead.c.inc"
+#include "decode-xtheadvector.c.inc"
+#include "insn_trans/trans_xtheadvector.c.inc"
 #include "insn_trans/trans_xventanacondops.c.inc"
 
 /* Include the auto-generated decoder for 16 bit insn */
@@ -1120,13 +1122,8 @@ static inline int insn_len(uint16_t first_word)
     return (first_word & 3) == 3 ? 4 : 2;
 }
 
-static bool decode_xtheadvector_stub(DisasContext *ctx, uint32_t insn)
-{
-    return true;
-}
-
 const struct RISCVDecoder thead_decoder[] = {
-    { has_xtheadvector_p, decode_xtheadvector_stub },
+    { has_xtheadvector_p, decode_xtheadvector },
     { has_xthead_p, decode_xthead },
     { always_true_p, decode_insn32 },
     { NULL, NULL }
