@@ -184,6 +184,28 @@ GEN_TH_LD_ELEM(ldhu_d, uint16_t, uint64_t, H8, lduw)
 GEN_TH_LD_ELEM(ldwu_w, uint32_t, uint32_t, H4, ldl)
 GEN_TH_LD_ELEM(ldwu_d, uint32_t, uint64_t, H8, ldl)
 
+#define GEN_TH_ST_ELEM(NAME, ETYPE, H, STSUF)            \
+static void NAME(CPURISCVState *env, abi_ptr addr,         \
+                 uint32_t idx, void *vd, uintptr_t retaddr)\
+{                                                          \
+    ETYPE data = *((ETYPE *)vd + H(idx));                  \
+    cpu_##STSUF##_data_ra(env, addr, data, retaddr);       \
+}
+
+GEN_TH_ST_ELEM(stb_b, int8_t,  H1, stb)
+GEN_TH_ST_ELEM(stb_h, int16_t, H2, stb)
+GEN_TH_ST_ELEM(stb_w, int32_t, H4, stb)
+GEN_TH_ST_ELEM(stb_d, int64_t, H8, stb)
+GEN_TH_ST_ELEM(sth_h, int16_t, H2, stw)
+GEN_TH_ST_ELEM(sth_w, int32_t, H4, stw)
+GEN_TH_ST_ELEM(sth_d, int64_t, H8, stw)
+GEN_TH_ST_ELEM(stw_w, int32_t, H4, stl)
+GEN_TH_ST_ELEM(stw_d, int64_t, H8, stl)
+GEN_TH_ST_ELEM(ste_b, int8_t,  H1, stb)
+GEN_TH_ST_ELEM(ste_h, int16_t, H2, stw)
+GEN_TH_ST_ELEM(ste_w, int32_t, H4, stl)
+GEN_TH_ST_ELEM(ste_d, int64_t, H8, stq)
+
 /*
  *** stride: access vector element from strided memory
  */
@@ -270,3 +292,31 @@ GEN_TH_LD_STRIDE(th_vlshu_v_w, uint16_t, uint32_t, ldhu_w, clearl_th)
 GEN_TH_LD_STRIDE(th_vlshu_v_d, uint16_t, uint64_t, ldhu_d, clearq_th)
 GEN_TH_LD_STRIDE(th_vlswu_v_w, uint32_t, uint32_t, ldwu_w, clearl_th)
 GEN_TH_LD_STRIDE(th_vlswu_v_d, uint32_t, uint64_t, ldwu_d, clearq_th)
+
+/*
+ * GEN_TH_ST_STRIDE is similar to GEN_VEXT_ST_STRIDE
+ * just change the function name and args
+ */
+#define GEN_TH_ST_STRIDE(NAME, MTYPE, ETYPE, STORE_FN)                  \
+void HELPER(NAME)(void *vd, void *v0, target_ulong base,                \
+                  target_ulong stride, CPURISCVState *env,              \
+                  uint32_t desc)                                        \
+{                                                                       \
+    uint32_t vm = th_vm(desc);                                          \
+    th_ldst_stride(vd, v0, base, stride, env, desc, vm, STORE_FN,       \
+                   NULL, sizeof(ETYPE), sizeof(MTYPE), GETPC());        \
+}
+
+GEN_TH_ST_STRIDE(th_vssb_v_b, int8_t,  int8_t,  stb_b)
+GEN_TH_ST_STRIDE(th_vssb_v_h, int8_t,  int16_t, stb_h)
+GEN_TH_ST_STRIDE(th_vssb_v_w, int8_t,  int32_t, stb_w)
+GEN_TH_ST_STRIDE(th_vssb_v_d, int8_t,  int64_t, stb_d)
+GEN_TH_ST_STRIDE(th_vssh_v_h, int16_t, int16_t, sth_h)
+GEN_TH_ST_STRIDE(th_vssh_v_w, int16_t, int32_t, sth_w)
+GEN_TH_ST_STRIDE(th_vssh_v_d, int16_t, int64_t, sth_d)
+GEN_TH_ST_STRIDE(th_vssw_v_w, int32_t, int32_t, stw_w)
+GEN_TH_ST_STRIDE(th_vssw_v_d, int32_t, int64_t, stw_d)
+GEN_TH_ST_STRIDE(th_vsse_v_b, int8_t,  int8_t,  ste_b)
+GEN_TH_ST_STRIDE(th_vsse_v_h, int16_t, int16_t, ste_h)
+GEN_TH_ST_STRIDE(th_vsse_v_w, int32_t, int32_t, ste_w)
+GEN_TH_ST_STRIDE(th_vsse_v_d, int64_t, int64_t, ste_d)

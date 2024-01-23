@@ -282,6 +282,58 @@ GEN_TH_TRANS(th_vlsbu_v, 4, rnfvm, ld_stride_op_th, ld_stride_check_th)
 GEN_TH_TRANS(th_vlshu_v, 5, rnfvm, ld_stride_op_th, ld_stride_check_th)
 GEN_TH_TRANS(th_vlswu_v, 6, rnfvm, ld_stride_op_th, ld_stride_check_th)
 
+/*
+ * This function is almost the copy of st_stride_op, except:
+ * 1) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ * 2) XTheadVector has more situations. vss{8,16,32,64}.v decide the
+ *    reg and mem width both equal 8/16/32/64. As for th.vss{b,h,w}.v, the
+ *    reg width equals SEW, and the mem width equals 8/16/32. The reg and
+ *    mem width of th.vsse.v both equal SEW. Therefore, we need to add more
+ *    helper functions depending on SEW.
+ */
+static bool st_stride_op_th(DisasContext *s, arg_rnfvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_ldst_stride_th *fn;
+    static gen_helper_ldst_stride_th * const fns[4][4] = {
+        /* masked stride store */
+        { gen_helper_th_vssb_v_b,  gen_helper_th_vssb_v_h,
+          gen_helper_th_vssb_v_w,  gen_helper_th_vssb_v_d },
+        { NULL,                    gen_helper_th_vssh_v_h,
+          gen_helper_th_vssh_v_w,  gen_helper_th_vssh_v_d },
+        { NULL,                    NULL,
+          gen_helper_th_vssw_v_w,  gen_helper_th_vssw_v_d },
+        { gen_helper_th_vsse_v_b,  gen_helper_th_vsse_v_h,
+          gen_helper_th_vsse_v_w,  gen_helper_th_vsse_v_d }
+    };
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, NF, a->nf);
+    fn =  fns[seq][s->sew];
+    if (fn == NULL) {
+        return false;
+    }
+
+    return ldst_stride_trans_th(a->rd, a->rs1, a->rs2, data, fn, s, true);
+}
+
+/* store does not need to check overlap */
+static bool st_stride_check_th(DisasContext *s, arg_rnfvm* a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_nf(s, a->rd, a->nf));
+}
+
+GEN_TH_TRANS(th_vssb_v, 0, rnfvm, st_stride_op_th, st_stride_check_th)
+GEN_TH_TRANS(th_vssh_v, 1, rnfvm, st_stride_op_th, st_stride_check_th)
+GEN_TH_TRANS(th_vssw_v, 2, rnfvm, st_stride_op_th, st_stride_check_th)
+GEN_TH_TRANS(th_vsse_v, 3, rnfvm, st_stride_op_th, st_stride_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
@@ -306,10 +358,6 @@ TH_TRANS_STUB(th_vsb_v)
 TH_TRANS_STUB(th_vsh_v)
 TH_TRANS_STUB(th_vsw_v)
 TH_TRANS_STUB(th_vse_v)
-TH_TRANS_STUB(th_vssb_v)
-TH_TRANS_STUB(th_vssh_v)
-TH_TRANS_STUB(th_vssw_v)
-TH_TRANS_STUB(th_vsse_v)
 TH_TRANS_STUB(th_vlxb_v)
 TH_TRANS_STUB(th_vlxh_v)
 TH_TRANS_STUB(th_vlxw_v)
