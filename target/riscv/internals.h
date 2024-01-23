@@ -57,6 +57,18 @@ static inline bool mmuidx_2stage(int mmu_idx)
 }
 
 /* share data between vector helpers and decode code */
+/*
+ * XTheadVector need mlen in addition, and does not need
+ * VTA and VMA. So, we redesign the encoding of desc.
+ *
+ * MLEN = SEW/LMUL. to indicate the mask bit.
+ */
+FIELD(VDATA_TH, MLEN, 0, 8)
+FIELD(VDATA_TH, VM, 8, 1)
+FIELD(VDATA_TH, LMUL, 9, 2)
+FIELD(VDATA_TH, NF, 11, 4)
+FIELD(VDATA_TH, WD, 11, 1)
+
 FIELD(VDATA, VM, 0, 1)
 FIELD(VDATA, LMUL, 1, 3)
 FIELD(VDATA, VTA, 4, 1)

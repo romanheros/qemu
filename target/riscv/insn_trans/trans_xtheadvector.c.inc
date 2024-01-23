@@ -119,6 +119,169 @@ static bool trans_th_vsetvli(DisasContext *s, arg_th_vsetvli *a)
     return th_vsetvl(s, a->rd, a->rs1, dst);
 }
 
+/* check functions */
+
+/*
+ * There are two rules check here.
+ * 1. Vector register numbers are multiples of LMUL.
+ * 2. For all widening instructions, the destination LMUL value must also be
+ *    a supported LMUL value.
+ *
+ * This function is the combination of require_align and vext_wide_check_common,
+ * except:
+ * 1) In require_align, if LMUL < 0, i.e. fractional LMUL, any vector register
+ *    is allowed, we do not need to check this situation.
+ * 2) In vext_wide_check_common, RVV check all the constraints of widen
+ *    instruction, including SEW < 64, 2*SEW <ELEN and overlap constraints.
+ *    But in th_check_reg, we only check the reg constraint, including lmul < 8
+ *    and destination vector register number is multiples of 2 * LMUL.
+ *    Other widen constraints are checked in other functions.
+ */
+static bool th_check_reg(DisasContext *s, uint32_t reg, bool widen)
+{
+    /*
+     * The destination vector register group results are arranged as if both
+     * SEW and LMUL were at twice their current settings.
+     */
+    int legal = widen ? 2 << s->lmul : 1 << s->lmul;
+
+    return !((s->lmul == 0x3 && widen) || (reg % legal));
+}
+
+/*
+ * There are two rules check here.
+ * 1. The destination vector register group for a masked vector instruction can
+ *    only overlap the source mask register (v0) when LMUL=1.
+ * 2. In widen instructions and some other insturctions, like vslideup.vx,
+ *    there is no need to check whether LMUL=1.
+ *
+ * This function is almost the copy of require_vm, except:
+ * 1) In RVV1.0, destination vector register group cannot overlap source mask
+ *    register even when LMUL=1. So we have to add a check of "(s->lmul == 0)".
+ * 2) When the instruction forbid the mask overlap in all situation, we add
+ *    a arg of "force" to flag the situation.
+ */
+static bool th_check_overlap_mask(DisasContext *s, uint32_t vd, bool vm,
+                                  bool force)
+{
+    return (vm != 0 || vd != 0) || (!force && (s->lmul == 0));
+}
+
+/*
+ * The LMUL setting must be such that LMUL * NFIELDS <= 8.
+ *
+ * This function is almost the copy of require_nf, except that
+ * XTheadVectot does not have fractional LMUL, so we do not need to
+ * max(lmul, 0)
+ * RVV use "size = nf << MAX(lmul, 0)" to let the one segment be loaded
+ * to at least one vector register.
+ */
+static bool th_check_nf(DisasContext *s, uint32_t vd, uint32_t nf)
+{
+    int size = nf << s->lmul;
+    return size <= 8 && vd + size <= 32;
+}
+
+static bool th_check_isa_ill(DisasContext *s)
+{
+    return vext_check_isa_ill(s);
+}
+
+/* common translation macro */
+/*
+ * GEN_TH_TRANS is similar to GEN_VEXT_TRANS
+ * just change the function args
+ */
+#define GEN_TH_TRANS(NAME, SEQ, ARGTYPE, OP, CHECK)        \
+static bool trans_##NAME(DisasContext *s, arg_##ARGTYPE *a)\
+{                                                          \
+    if (CHECK(s, a)) {                                     \
+        return OP(s, a, SEQ);                              \
+    }                                                      \
+    return false;                                          \
+}
+
+/*
+ *** stride load and store
+ */
+
+#define gen_helper_ldst_stride_th gen_helper_ldst_stride
+
+static bool ldst_stride_trans_th(uint32_t vd, uint32_t rs1, uint32_t rs2,
+                                 uint32_t data, gen_helper_ldst_stride_th *fn,
+                                 DisasContext *s, bool is_store)
+{
+    return ldst_stride_trans(vd, rs1, rs2, data, fn, s, is_store);
+}
+/*
+ * This function is almost the copy of ld_stride_op, except:
+ * 1) XTheadVector has more insns to handle zero/sign-extended.
+ * 2) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ *
+ *    MLEN = SEW/LMUL. to indicate the mask bit.
+ */
+static bool ld_stride_op_th(DisasContext *s, arg_rnfvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_ldst_stride_th *fn;
+    static gen_helper_ldst_stride_th * const fns[7][4] = {
+        { gen_helper_th_vlsb_v_b,  gen_helper_th_vlsb_v_h,
+          gen_helper_th_vlsb_v_w,  gen_helper_th_vlsb_v_d },
+        { NULL,                    gen_helper_th_vlsh_v_h,
+          gen_helper_th_vlsh_v_w,  gen_helper_th_vlsh_v_d },
+        { NULL,                    NULL,
+          gen_helper_th_vlsw_v_w,  gen_helper_th_vlsw_v_d },
+        { gen_helper_th_vlse_v_b,  gen_helper_th_vlse_v_h,
+          gen_helper_th_vlse_v_w,  gen_helper_th_vlse_v_d },
+        { gen_helper_th_vlsbu_v_b, gen_helper_th_vlsbu_v_h,
+          gen_helper_th_vlsbu_v_w, gen_helper_th_vlsbu_v_d },
+        { NULL,                    gen_helper_th_vlshu_v_h,
+          gen_helper_th_vlshu_v_w, gen_helper_th_vlshu_v_d },
+        { NULL,                    NULL,
+          gen_helper_th_vlswu_v_w, gen_helper_th_vlswu_v_d },
+    };
+
+    fn =  fns[seq][s->sew];
+    if (fn == NULL) {
+        return false;
+    }
+    /* Need extra mlen to find the mask bit */
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, NF, a->nf);
+    return ldst_stride_trans_th(a->rd, a->rs1, a->rs2, data, fn, s, false);
+}
+
+/*
+ * check function
+ * 1) check overlap mask, XTheadVector can overlap mask reg v0 when
+ *    lmul == 1, while RVV1.0 can not.
+ * 2) check reg, XTheadVector Vector register numbers are multiples
+ *    of integral LMUL, while RVV1.0 has fractional LMUL, which allows
+ *    any vector register.
+ * 3) check nf, the LMUL setting must be such that LMUL * NFIELDS <= 8,
+ *    which is the same as RVV1.0. But we do not need to check fractional
+ *    LMUL.
+ */
+static bool ld_stride_check_th(DisasContext *s, arg_rnfvm* a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_nf(s, a->rd, a->nf));
+}
+
+GEN_TH_TRANS(th_vlsb_v, 0, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlsh_v, 1, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlsw_v, 2, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlse_v, 3, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlsbu_v, 4, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlshu_v, 5, rnfvm, ld_stride_op_th, ld_stride_check_th)
+GEN_TH_TRANS(th_vlswu_v, 6, rnfvm, ld_stride_op_th, ld_stride_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
@@ -143,13 +306,6 @@ TH_TRANS_STUB(th_vsb_v)
 TH_TRANS_STUB(th_vsh_v)
 TH_TRANS_STUB(th_vsw_v)
 TH_TRANS_STUB(th_vse_v)
-TH_TRANS_STUB(th_vlsb_v)
-TH_TRANS_STUB(th_vlsh_v)
-TH_TRANS_STUB(th_vlsw_v)
-TH_TRANS_STUB(th_vlse_v)
-TH_TRANS_STUB(th_vlsbu_v)
-TH_TRANS_STUB(th_vlshu_v)
-TH_TRANS_STUB(th_vlswu_v)
 TH_TRANS_STUB(th_vssb_v)
 TH_TRANS_STUB(th_vssh_v)
 TH_TRANS_STUB(th_vssw_v)

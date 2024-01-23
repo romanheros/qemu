@@ -18,6 +18,7 @@ riscv_ss.add(files(
   'gdbstub.c',
   'op_helper.c',
   'vector_helper.c',
+  'xtheadvector_helper.c',
   'vector_internals.c',
   'bitmanip_helper.c',
   'translate.c',
