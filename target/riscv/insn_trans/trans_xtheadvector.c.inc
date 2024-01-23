@@ -24,14 +24,107 @@ static bool require_thv(DisasContext *s)
     return s->cfg_ptr->ext_xtheadvector;
 }
 
+static bool th_vsetvl(DisasContext *s, int rd, int rs1, TCGv s2)
+{
+    return do_vsetvl(s, rd, rs1, s2);
+}
+
+/*
+ * XTheadVector has different vtype encoding from RVV1.0.
+ * We recode the value in RVV1.0 vtype format to reuse the RVV1.0 functions.
+ * In RVV1.0:
+ *   vtype[7] -> vma
+ *   vtype[6] -> vta
+ *   vtype[5:3] -> vsew
+ *   vtype[2:0] -> vlmul
+ * In XTheadVector:
+ *   vtype[6:5] -> vediv (reserved)
+ *   vtype[4:2] -> vsew
+ *   vtype[1:0] -> vlmul
+ *
+ * Also th_vsetvl does not have feature of keeping existing vl when
+ * (rd == 0 && rs1 == 0), So we need to set cpu_vl to RV_VLEN_MAX to make
+ * it work as (rs1 == 0) branch.
+ */
+static bool trans_th_vsetvl(DisasContext *s, arg_th_vsetvl *a)
+{
+    if (!require_thv(s)) {
+        return false;
+    }
+
+    TCGv s2 = get_gpr(s, a->rs2, EXT_ZERO);
+    TCGv temp = tcg_temp_new();
+    TCGv dst = tcg_temp_new();
+    /* illegal value check*/
+    TCGLabel *legal = gen_new_label();
+    tcg_gen_shri_tl(temp, s2, 5);
+    tcg_gen_brcondi_tl(TCG_COND_EQ, temp, 0, legal);
+    /*
+     * if illegal, set unsupported value
+     * s2[8:5] == 0b111, which is reserved field in XTheadVector
+     */
+    tcg_gen_movi_tl(s2, 0xff);
+    gen_set_label(legal);
+    /* get vlmul, s2[1:0] -> dst[2:0] */
+    tcg_gen_andi_tl(dst, s2, 0x3);
+    /* get vsew, s2[4:2] -> dst[5:3] */
+    tcg_gen_andi_tl(temp, s2, 0x1c);
+    tcg_gen_shli_tl(temp, temp, 1);
+    tcg_gen_or_tl(dst, dst, temp);
+    /*
+     * get reserved field when illegal, s2[7:5] -> dst[10:8]
+     * avoid dst[7:6], because dst[7:6] are vma and vta.
+     *
+     * Make the dst an illegal value for RVV1.0, leads to the illegal
+     * operation processing flow.
+     */
+    tcg_gen_andi_tl(temp, s2, 0xe0);
+    tcg_gen_shli_tl(temp, temp, 3);
+    tcg_gen_or_tl(dst, dst, temp);
+    if (a->rd == 0 && a->rs1 == 0) {
+        cpu_vl = tcg_constant_tl(RV_VLEN_MAX);
+    }
+    return th_vsetvl(s, a->rd, a->rs1, dst);
+}
+
+static bool trans_th_vsetvli(DisasContext *s, arg_th_vsetvli *a)
+{
+    if (!require_thv(s)) {
+        return false;
+    }
+
+    TCGv s2 = tcg_constant_tl(a->zimm);
+    TCGv temp = tcg_temp_new();
+    TCGv dst = tcg_temp_new();
+    /* illegal value check*/
+    TCGLabel *legal = gen_new_label();
+    tcg_gen_shri_tl(temp, s2, 5);
+    tcg_gen_brcondi_tl(TCG_COND_EQ, temp, 0, legal);
+    /* if illegal, set unsupported value */
+    tcg_gen_movi_tl(s2, 0xff);
+    gen_set_label(legal);
+    /* get vlmul */
+    tcg_gen_andi_tl(dst, s2, 0x3);
+    /* get vsew */
+    tcg_gen_andi_tl(temp, s2, 0x1c);
+    tcg_gen_shli_tl(temp, temp, 1);
+    tcg_gen_or_tl(dst, dst, temp);
+    /* get reserved field when illegal*/
+    tcg_gen_andi_tl(temp, s2, 0xe0);
+    tcg_gen_shli_tl(temp, temp, 3);
+    tcg_gen_or_tl(dst, dst, temp);
+    if (a->rd == 0 && a->rs1 == 0) {
+        cpu_vl = tcg_constant_tl(RV_VLEN_MAX);
+    }
+    return th_vsetvl(s, a->rd, a->rs1, dst);
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vsetvli)
-TH_TRANS_STUB(th_vsetvl)
 TH_TRANS_STUB(th_vlb_v)
 TH_TRANS_STUB(th_vlh_v)
 TH_TRANS_STUB(th_vlw_v)
