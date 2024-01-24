@@ -1250,22 +1250,143 @@ GEN_OPIWX_WIDEN_TRANS_TH(th_vwadd_wx)
 GEN_OPIWX_WIDEN_TRANS_TH(th_vwsubu_wx)
 GEN_OPIWX_WIDEN_TRANS_TH(th_vwsub_wx)
 
+/* Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions */
+/*
+ * This function is almost the copy of opivv_trans, except:
+ * 1) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ */
+static bool opivv_trans_th(uint32_t vd, uint32_t vs1, uint32_t vs2, uint32_t vm,
+                           gen_helper_gvec_4_ptr *fn, DisasContext *s)
+{
+    uint32_t data = 0;
+    TCGLabel *over = gen_new_label();
+    tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    tcg_gen_gvec_4_ptr(th_vreg_ofs(s, vd), th_vreg_ofs(s, 0),
+                       th_vreg_ofs(s, vs1), th_vreg_ofs(s, vs2),
+                       tcg_env, s->cfg_ptr->vlen / 8,
+                       s->cfg_ptr->vlen / 8, data, fn);
+    mark_vs_dirty(s);
+    gen_set_label(over);
+    return true;
+}
+
+/* OPIVV without GVEC IR */
+#define GEN_OPIVV_TRANS_TH(NAME, CHECK)                            \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    if (CHECK(s, a)) {                                             \
+        static gen_helper_gvec_4_ptr * const fns[4] = {            \
+            gen_helper_##NAME##_b, gen_helper_##NAME##_h,          \
+            gen_helper_##NAME##_w, gen_helper_##NAME##_d,          \
+        };                                                         \
+        return opivv_trans_th(a->rd, a->rs1, a->rs2, a->vm,        \
+                              fns[s->sew], s);                     \
+    }                                                              \
+    return false;                                                  \
+}
+
+/*
+ * For vadc and vsbc, an illegal instruction exception is raised if the
+ * destination vector register is v0 and LMUL > 1.
+ */
+static bool opivv_vadc_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            ((a->rd != 0) || (s->lmul == 0)));
+}
+
+GEN_OPIVV_TRANS_TH(th_vadc_vvm, opivv_vadc_check_th)
+GEN_OPIVV_TRANS_TH(th_vsbc_vvm, opivv_vadc_check_th)
+
+/*
+ * For vmadc and vmsbc, an illegal instruction exception is raised if the
+ * destination vector register overlaps a source vector register group.
+ */
+static bool opivv_vmadc_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            th_check_overlap_group(a->rd, 1, a->rs1, 1 << s->lmul) &&
+            th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul));
+}
+
+GEN_OPIVV_TRANS_TH(th_vmadc_vvm, opivv_vmadc_check_th)
+GEN_OPIVV_TRANS_TH(th_vmsbc_vvm, opivv_vmadc_check_th)
+
+static bool opivx_vadc_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            ((a->rd != 0) || (s->lmul == 0)));
+}
+
+/* OPIVX without GVEC IR */
+#define GEN_OPIVX_TRANS_TH(NAME, CHECK)                                  \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                   \
+{                                                                        \
+    if (CHECK(s, a)) {                                                   \
+        static gen_helper_opivx * const fns[4] = {                       \
+            gen_helper_##NAME##_b, gen_helper_##NAME##_h,                \
+            gen_helper_##NAME##_w, gen_helper_##NAME##_d,                \
+        };                                                               \
+                                                                         \
+        return opivx_trans_th(a->rd, a->rs1, a->rs2, a->vm,              \
+                              fns[s->sew], s);                           \
+    }                                                                    \
+    return false;                                                        \
+}
+
+GEN_OPIVX_TRANS_TH(th_vadc_vxm, opivx_vadc_check_th)
+GEN_OPIVX_TRANS_TH(th_vsbc_vxm, opivx_vadc_check_th)
+
+static bool opivx_vmadc_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul));
+}
+
+GEN_OPIVX_TRANS_TH(th_vmadc_vxm, opivx_vmadc_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsbc_vxm, opivx_vmadc_check_th)
+
+/* OPIVI without GVEC IR */
+#define GEN_OPIVI_TRANS_TH(NAME, ZX, OPIVX, CHECK)                       \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                   \
+{                                                                        \
+    if (CHECK(s, a)) {                                                   \
+        static gen_helper_opivx * const fns[4] = {                       \
+            gen_helper_##OPIVX##_b, gen_helper_##OPIVX##_h,              \
+            gen_helper_##OPIVX##_w, gen_helper_##OPIVX##_d,              \
+        };                                                               \
+        return opivi_trans_th(a->rd, a->rs1, a->rs2, a->vm,              \
+                              fns[s->sew], s, ZX);                       \
+    }                                                                    \
+    return false;                                                        \
+}
+
+GEN_OPIVI_TRANS_TH(th_vadc_vim, IMM_SX, th_vadc_vxm, opivx_vadc_check_th)
+GEN_OPIVI_TRANS_TH(th_vmadc_vim, IMM_SX, th_vmadc_vxm, opivx_vmadc_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vadc_vvm)
-TH_TRANS_STUB(th_vadc_vxm)
-TH_TRANS_STUB(th_vadc_vim)
-TH_TRANS_STUB(th_vmadc_vvm)
-TH_TRANS_STUB(th_vmadc_vxm)
-TH_TRANS_STUB(th_vmadc_vim)
-TH_TRANS_STUB(th_vsbc_vvm)
-TH_TRANS_STUB(th_vsbc_vxm)
-TH_TRANS_STUB(th_vmsbc_vvm)
-TH_TRANS_STUB(th_vmsbc_vxm)
 TH_TRANS_STUB(th_vand_vv)
 TH_TRANS_STUB(th_vand_vx)
 TH_TRANS_STUB(th_vand_vi)

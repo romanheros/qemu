@@ -147,6 +147,15 @@ static inline int th_elem_mask(void *v0, int mlen, int index)
     return (((uint64_t *)v0)[idx] >> pos) & 1;
 }
 
+static inline void th_set_elem_mask(void *v0, int mlen, int index,
+                                    uint8_t value)
+{
+    int idx = (index * mlen) / 64;
+    int pos = (index * mlen) % 64;
+    uint64_t old = ((uint64_t *)v0)[idx];
+    ((uint64_t *)v0)[idx] = deposit64(old, pos, mlen, value);
+}
+
 /* elements operations for load and store */
 typedef void th_ldst_elem_fn(CPURISCVState *env, target_ulong addr,
                              uint32_t idx, void *vd, uintptr_t retaddr);
@@ -1075,3 +1084,162 @@ GEN_TH_VX(th_vwadd_wx_w, 4, 8, clearq_th)
 GEN_TH_VX(th_vwsub_wx_b, 1, 2, clearh_th)
 GEN_TH_VX(th_vwsub_wx_h, 2, 4, clearl_th)
 GEN_TH_VX(th_vwsub_wx_w, 4, 8, clearq_th)
+
+/* Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions */
+#define TH_VADC(N, M, C) (N + M + C)
+#define TH_VSBC(N, M, C) (N - M - C)
+/*
+ * This function is almost the copy of GEN_VEXT_VADC_VVM, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different tail elements process policy
+ */
+#define GEN_TH_VADC_VVM(NAME, ETYPE, H, DO_OP, CLEAR_FN)      \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,   \
+                  CPURISCVState *env, uint32_t desc)          \
+{                                                             \
+    uint32_t mlen = th_mlen(desc);                            \
+    uint32_t vl = env->vl;                                    \
+    uint32_t esz = sizeof(ETYPE);                             \
+    uint32_t vlmax = th_maxsz(desc) / esz;                    \
+    uint32_t i;                                               \
+                                                              \
+    for (i = env->vstart; i < vl; i++) {                      \
+        ETYPE s1 = *((ETYPE *)vs1 + H(i));                    \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
+        uint8_t carry = th_elem_mask(v0, mlen, i);            \
+                                                              \
+        *((ETYPE *)vd + H(i)) = DO_OP(s2, s1, carry);         \
+    }                                                         \
+    env->vstart = 0;                                          \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                  \
+}
+
+GEN_TH_VADC_VVM(th_vadc_vvm_b, uint8_t,  H1, TH_VADC, clearb_th)
+GEN_TH_VADC_VVM(th_vadc_vvm_h, uint16_t, H2, TH_VADC, clearh_th)
+GEN_TH_VADC_VVM(th_vadc_vvm_w, uint32_t, H4, TH_VADC, clearl_th)
+GEN_TH_VADC_VVM(th_vadc_vvm_d, uint64_t, H8, TH_VADC, clearq_th)
+
+GEN_TH_VADC_VVM(th_vsbc_vvm_b, uint8_t,  H1, TH_VSBC, clearb_th)
+GEN_TH_VADC_VVM(th_vsbc_vvm_h, uint16_t, H2, TH_VSBC, clearh_th)
+GEN_TH_VADC_VVM(th_vsbc_vvm_w, uint32_t, H4, TH_VSBC, clearl_th)
+GEN_TH_VADC_VVM(th_vsbc_vvm_d, uint64_t, H8, TH_VSBC, clearq_th)
+/*
+ * This function is almost the copy of GEN_VEXT_VADC_VXM, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different tail elements process policy
+ */
+#define GEN_TH_VADC_VXM(NAME, ETYPE, H, DO_OP, CLEAR_FN)                 \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,        \
+                  CPURISCVState *env, uint32_t desc)                     \
+{                                                                        \
+    uint32_t mlen = th_mlen(desc);                                       \
+    uint32_t vl = env->vl;                                               \
+    uint32_t esz = sizeof(ETYPE);                                        \
+    uint32_t vlmax = th_maxsz(desc) / esz;                               \
+    uint32_t i;                                                          \
+                                                                         \
+    for (i = env->vstart; i < vl; i++) {                                 \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                               \
+        uint8_t carry = th_elem_mask(v0, mlen, i);                       \
+                                                                         \
+        *((ETYPE *)vd + H(i)) = DO_OP(s2, (ETYPE)(target_long)s1, carry);\
+    }                                                                    \
+    env->vstart = 0;                                                     \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                             \
+}
+
+GEN_TH_VADC_VXM(th_vadc_vxm_b, uint8_t,  H1, TH_VADC, clearb_th)
+GEN_TH_VADC_VXM(th_vadc_vxm_h, uint16_t, H2, TH_VADC, clearh_th)
+GEN_TH_VADC_VXM(th_vadc_vxm_w, uint32_t, H4, TH_VADC, clearl_th)
+GEN_TH_VADC_VXM(th_vadc_vxm_d, uint64_t, H8, TH_VADC, clearq_th)
+
+GEN_TH_VADC_VXM(th_vsbc_vxm_b, uint8_t,  H1, TH_VSBC, clearb_th)
+GEN_TH_VADC_VXM(th_vsbc_vxm_h, uint16_t, H2, TH_VSBC, clearh_th)
+GEN_TH_VADC_VXM(th_vsbc_vxm_w, uint32_t, H4, TH_VSBC, clearl_th)
+GEN_TH_VADC_VXM(th_vsbc_vxm_d, uint64_t, H8, TH_VSBC, clearq_th)
+
+#define TH_MADC(N, M, C) (C ? (__typeof(N))(N + M + 1) <= N :           \
+                          (__typeof(N))(N + M) < N)
+#define TH_MSBC(N, M, C) (C ? N <= M : N < M)
+/*
+ * This function is almost the copy of GEN_VEXT_VMADC_VVM, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different tail elements process policy
+ * 4) When vm = 1, RVV1.0 vmadc and vmsbc perform the computation
+ *    without carry-in/borrow-in. While XTheadVector does not have
+ *    this kind of situation.
+ */
+#define GEN_TH_VMADC_VVM(NAME, ETYPE, H, DO_OP)               \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,   \
+                  CPURISCVState *env, uint32_t desc)          \
+{                                                             \
+    uint32_t mlen = th_mlen(desc);                            \
+    uint32_t vl = env->vl;                                    \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);          \
+    uint32_t i;                                               \
+                                                              \
+    for (i = env->vstart; i < vl; i++) {                      \
+        ETYPE s1 = *((ETYPE *)vs1 + H(i));                    \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
+        uint8_t carry = th_elem_mask(v0, mlen, i);            \
+                                                              \
+        th_set_elem_mask(vd, mlen, i, DO_OP(s2, s1, carry));  \
+    }                                                         \
+    env->vstart = 0;                                          \
+    for (; i < vlmax; i++) {                                  \
+        th_set_elem_mask(vd, mlen, i, 0);                     \
+    }                                                         \
+}
+
+GEN_TH_VMADC_VVM(th_vmadc_vvm_b, uint8_t,  H1, TH_MADC)
+GEN_TH_VMADC_VVM(th_vmadc_vvm_h, uint16_t, H2, TH_MADC)
+GEN_TH_VMADC_VVM(th_vmadc_vvm_w, uint32_t, H4, TH_MADC)
+GEN_TH_VMADC_VVM(th_vmadc_vvm_d, uint64_t, H8, TH_MADC)
+
+GEN_TH_VMADC_VVM(th_vmsbc_vvm_b, uint8_t,  H1, TH_MSBC)
+GEN_TH_VMADC_VVM(th_vmsbc_vvm_h, uint16_t, H2, TH_MSBC)
+GEN_TH_VMADC_VVM(th_vmsbc_vvm_w, uint32_t, H4, TH_MSBC)
+GEN_TH_VMADC_VVM(th_vmsbc_vvm_d, uint64_t, H8, TH_MSBC)
+/*
+ * This function is almost the copy of GEN_VEXT_VMADC_VXM, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different tail elements process policy
+ * 4) When vm = 1, RVV1.0 vmadc and vmsbc perform the computation
+ *    without carry-in/borrow-in. While XTheadVector does not have
+ *    this kind of situation.
+ */
+#define GEN_TH_VMADC_VXM(NAME, ETYPE, H, DO_OP)                 \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1,          \
+                  void *vs2, CPURISCVState *env, uint32_t desc) \
+{                                                               \
+    uint32_t mlen = th_mlen(desc);                              \
+    uint32_t vl = env->vl;                                      \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);            \
+    uint32_t i;                                                 \
+                                                                \
+    for (i = env->vstart; i < vl; i++) {                        \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                      \
+        uint8_t carry = th_elem_mask(v0, mlen, i);              \
+                                                                \
+        th_set_elem_mask(vd, mlen, i,                           \
+                DO_OP(s2, (ETYPE)(target_long)s1, carry));      \
+    }                                                           \
+    env->vstart = 0;                                            \
+    for (; i < vlmax; i++) {                                    \
+        th_set_elem_mask(vd, mlen, i, 0);                       \
+    }                                                           \
+}
+
+GEN_TH_VMADC_VXM(th_vmadc_vxm_b, uint8_t,  H1, TH_MADC)
+GEN_TH_VMADC_VXM(th_vmadc_vxm_h, uint16_t, H2, TH_MADC)
+GEN_TH_VMADC_VXM(th_vmadc_vxm_w, uint32_t, H4, TH_MADC)
+GEN_TH_VMADC_VXM(th_vmadc_vxm_d, uint64_t, H8, TH_MADC)
+
+GEN_TH_VMADC_VXM(th_vmsbc_vxm_b, uint8_t,  H1, TH_MSBC)
+GEN_TH_VMADC_VXM(th_vmsbc_vxm_h, uint16_t, H2, TH_MSBC)
+GEN_TH_VMADC_VXM(th_vmsbc_vxm_w, uint32_t, H4, TH_MSBC)
+GEN_TH_VMADC_VXM(th_vmsbc_vxm_d, uint64_t, H8, TH_MSBC)
