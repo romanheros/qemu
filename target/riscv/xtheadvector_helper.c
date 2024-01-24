@@ -809,3 +809,157 @@ GEN_TH_AMO(th_vamominw_v_w,  int32_t,  int32_t,  idx_w, clearl_th)
 GEN_TH_AMO(th_vamomaxw_v_w,  int32_t,  int32_t,  idx_w, clearl_th)
 GEN_TH_AMO(th_vamominuw_v_w, uint32_t, uint32_t, idx_w, clearl_th)
 GEN_TH_AMO(th_vamomaxuw_v_w, uint32_t, uint32_t, idx_w, clearl_th)
+
+/*
+ *** Vector Integer Arithmetic Instructions
+ */
+/* redefine macro to decouple */
+/* expand macro args before macro */
+#define THCALL(macro, ...)  macro(__VA_ARGS__)
+
+/* (TD, T1, T2, TX1, TX2) */
+#define TH_OP_SSS_B int8_t, int8_t, int8_t, int8_t, int8_t
+#define TH_OP_SSS_H int16_t, int16_t, int16_t, int16_t, int16_t
+#define TH_OP_SSS_W int32_t, int32_t, int32_t, int32_t, int32_t
+#define TH_OP_SSS_D int64_t, int64_t, int64_t, int64_t, int64_t
+
+/* operation of two vector elements */
+#define opivv2_fn_th opivv2_fn
+
+#define TH_OPIVV2(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP) \
+        OPIVV2(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)
+
+#define TH_SUB(N, M) (N - M)
+#define TH_RSUB(N, M) (M - N)
+
+THCALL(TH_OPIVV2, th_vadd_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_ADD)
+THCALL(TH_OPIVV2, th_vadd_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_ADD)
+THCALL(TH_OPIVV2, th_vadd_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_ADD)
+THCALL(TH_OPIVV2, th_vadd_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_ADD)
+THCALL(TH_OPIVV2, th_vsub_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_SUB)
+THCALL(TH_OPIVV2, th_vsub_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_SUB)
+THCALL(TH_OPIVV2, th_vsub_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_SUB)
+THCALL(TH_OPIVV2, th_vsub_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_SUB)
+
+/*
+ * This function is almost the copy of do_vext_vv, except:
+ * 1) XTheadVector has different mask layout, using th_elem_mask
+ *    to get [MLEN*i] bit
+ * 2) XTheadVector using different data encoding, using th_ functions
+ *    to parse.
+ * 3) XTheadVector keep the masked elements value, while RVV1.0 policy is
+ *    determined by vma.
+ * 4) XTheadVector clear the tail elements, while RVV1.0 policy is to rather
+ *    set all bits 1s or keep it, determined by vta.
+ */
+static void do_vext_vv_th(void *vd, void *v0, void *vs1, void *vs2,
+                          CPURISCVState *env, uint32_t desc,
+                          uint32_t esz, uint32_t dsz,
+                          opivv2_fn_th *fn, clear_fn *clearfn)
+{
+    uint32_t vlmax = th_maxsz(desc) / esz;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+    uint32_t i;
+
+    for (i = env->vstart; i < vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        fn(vd, vs1, vs2, i);
+    }
+    env->vstart = 0;
+    clearfn(vd, vl, vl * dsz,  vlmax * dsz);
+}
+
+/* generate the helpers for OPIVV */
+#define GEN_TH_VV(NAME, ESZ, DSZ, CLEAR_FN)               \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,          \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
+{                                                         \
+    do_vext_vv_th(vd, v0, vs1, vs2, env, desc, ESZ, DSZ,  \
+                  do_##NAME, CLEAR_FN);                   \
+}
+
+GEN_TH_VV(th_vadd_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vadd_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vsub_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vsub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vsub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vsub_vv_d, 8, 8, clearq_th)
+
+#define opivx2_fn_th opivx2_fn
+
+/*
+ * (T1)s1 gives the real operator type.
+ * (TX1)(T1)s1 expands the operator type of widen or narrow operations.
+ */
+#define TH_OPIVX2(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)    \
+        OPIVX2(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)
+
+THCALL(TH_OPIVX2, th_vadd_vx_b, TH_OP_SSS_B, H1, H1, TH_ADD)
+THCALL(TH_OPIVX2, th_vadd_vx_h, TH_OP_SSS_H, H2, H2, TH_ADD)
+THCALL(TH_OPIVX2, th_vadd_vx_w, TH_OP_SSS_W, H4, H4, TH_ADD)
+THCALL(TH_OPIVX2, th_vadd_vx_d, TH_OP_SSS_D, H8, H8, TH_ADD)
+THCALL(TH_OPIVX2, th_vsub_vx_b, TH_OP_SSS_B, H1, H1, TH_SUB)
+THCALL(TH_OPIVX2, th_vsub_vx_h, TH_OP_SSS_H, H2, H2, TH_SUB)
+THCALL(TH_OPIVX2, th_vsub_vx_w, TH_OP_SSS_W, H4, H4, TH_SUB)
+THCALL(TH_OPIVX2, th_vsub_vx_d, TH_OP_SSS_D, H8, H8, TH_SUB)
+THCALL(TH_OPIVX2, th_vrsub_vx_b, TH_OP_SSS_B, H1, H1, TH_RSUB)
+THCALL(TH_OPIVX2, th_vrsub_vx_h, TH_OP_SSS_H, H2, H2, TH_RSUB)
+THCALL(TH_OPIVX2, th_vrsub_vx_w, TH_OP_SSS_W, H4, H4, TH_RSUB)
+THCALL(TH_OPIVX2, th_vrsub_vx_d, TH_OP_SSS_D, H8, H8, TH_RSUB)
+
+/*
+ * This function is almost the copy of do_vext_vx, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different mask/tail elements process policy
+ */
+static void do_vext_vx_th(void *vd, void *v0, target_long s1, void *vs2,
+                          CPURISCVState *env, uint32_t desc,
+                          uint32_t esz, uint32_t dsz,
+                          opivx2_fn_th fn, clear_fn *clearfn)
+{
+    uint32_t vlmax = th_maxsz(desc) / esz;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+    uint32_t i;
+
+    for (i = env->vstart; i < vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        fn(vd, s1, vs2, i);
+    }
+    env->vstart = 0;
+    clearfn(vd, vl, vl * dsz,  vlmax * dsz);
+}
+
+/* generate the helpers for OPIVX */
+#define GEN_TH_VX(NAME, ESZ, DSZ, CLEAR_FN)               \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1,    \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
+{                                                         \
+    do_vext_vx_th(vd, v0, s1, vs2, env, desc, ESZ, DSZ,   \
+                  do_##NAME, CLEAR_FN);                   \
+}
+
+GEN_TH_VX(th_vadd_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vadd_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vadd_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vadd_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vsub_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vsub_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vsub_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vsub_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vrsub_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vrsub_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vrsub_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vrsub_vx_d, 8, 8, clearq_th)

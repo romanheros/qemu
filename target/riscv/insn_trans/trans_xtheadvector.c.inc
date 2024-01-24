@@ -806,19 +806,269 @@ GEN_TH_TRANS(th_vamomaxd_v, 15, rwdvm, amo_op_th, amo_check64_th)
 GEN_TH_TRANS(th_vamominud_v, 16, rwdvm, amo_op_th, amo_check64_th)
 GEN_TH_TRANS(th_vamomaxud_v, 17, rwdvm, amo_op_th, amo_check64_th)
 
+/*
+ *** Vector Integer Arithmetic Instructions
+ */
+static inline uint32_t MAXSZ_TH(DisasContext *s)
+{
+    return MAXSZ(s);
+}
+
+/*
+ * check function
+ * 1) check overlap mask, XTheadVector can overlap mask reg v0 when
+ *    lmul == 1, while RVV1.0 can not.
+ * 2) check reg, XTheadVector Vector register numbers are multiples
+ *    of integral LMUL, while RVV1.0 has fractional LMUL, which allows
+ *    any vector register.
+ */
+static bool opivv_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false));
+}
+
+#define GVecGen3Fn_Th GVecGen3Fn
+/*
+ * This function is almost the copy of do_opivv_gvec, except:
+ * 1) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ * 2) XTheadVector simplifies the judgment logic of whether
+ *    to accelerate or not for its lack of fractional LMUL and
+ *    VTA.
+ */
+static inline bool
+do_opivv_gvec_th(DisasContext *s, arg_rmrr *a, GVecGen3Fn_Th *gvec_fn,
+                 gen_helper_gvec_4_ptr *fn)
+{
+    TCGLabel *over = gen_new_label();
+
+    tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+    if (a->vm && s->vl_eq_vlmax) {
+        gvec_fn(s->sew, th_vreg_ofs(s, a->rd),
+                th_vreg_ofs(s, a->rs2), th_vreg_ofs(s, a->rs1),
+                MAXSZ_TH(s), MAXSZ_TH(s));
+    } else {
+        uint32_t data = 0;
+        /* Need extra mlen to find the mask bit */
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, 0),
+                           th_vreg_ofs(s, a->rs1), th_vreg_ofs(s, a->rs2),
+                           tcg_env, s->cfg_ptr->vlen / 8,
+                           s->cfg_ptr->vlen / 8, data, fn);
+    }
+    mark_vs_dirty(s);
+    gen_set_label(over);
+    return true;
+}
+
+/* OPIVV with GVEC IR */
+/*
+ * GEN_OPIVV_GVEC_TRANS_TH is similar to GEN_OPIVV_GVEC_TRANS
+ * just change the check and do_ functions.
+ */
+#define GEN_OPIVV_GVEC_TRANS_TH(NAME, SUF)                         \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    static gen_helper_gvec_4_ptr * const fns[4] = {                \
+        gen_helper_##NAME##_b, gen_helper_##NAME##_h,              \
+        gen_helper_##NAME##_w, gen_helper_##NAME##_d,              \
+    };                                                             \
+    if (!opivv_check_th(s, a)) {                                   \
+        return false;                                              \
+    }                                                              \
+    return do_opivv_gvec_th(s, a, tcg_gen_gvec_##SUF, fns[s->sew]);\
+}
+
+GEN_OPIVV_GVEC_TRANS_TH(th_vadd_vv, add)
+GEN_OPIVV_GVEC_TRANS_TH(th_vsub_vv, sub)
+
+/*
+ * This function is almost the copy of opivx_trans, except:
+ * 1) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ */
+#define gen_helper_opivx_th gen_helper_opivx
+static bool opivx_trans_th(uint32_t vd, uint32_t rs1, uint32_t vs2, uint32_t vm,
+                           gen_helper_opivx_th *fn, DisasContext *s)
+{
+    TCGv_ptr dest, src2, mask;
+    TCGv src1;
+    TCGv_i32 desc;
+    uint32_t data = 0;
+
+    TCGLabel *over = gen_new_label();
+    tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+    dest = tcg_temp_new_ptr();
+    mask = tcg_temp_new_ptr();
+    src2 = tcg_temp_new_ptr();
+    src1 = get_gpr(s, rs1, EXT_SIGN);
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                      s->cfg_ptr->vlen / 8, data));
+
+    tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, vd));
+    tcg_gen_addi_ptr(src2, tcg_env, th_vreg_ofs(s, vs2));
+    tcg_gen_addi_ptr(mask, tcg_env, th_vreg_ofs(s, 0));
+
+    fn(dest, mask, src1, src2, tcg_env, desc);
+
+    mark_vs_dirty(s);
+    gen_set_label(over);
+    return true;
+}
+
+static bool opivx_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false));
+}
+
+#define GVecGen2sFn_Th GVecGen2sFn
+/*
+ * This function is almost the copy of do_opivx_gvec, except:
+ * 1) XTheadVector simplifies the judgment logic of whether
+ *    to accelerate or not for its lack of fractional LMUL and
+ *    VTA.
+ */
+static inline bool
+do_opivx_gvec_th(DisasContext *s, arg_rmrr *a, GVecGen2sFn_Th *gvec_fn,
+                 gen_helper_opivx_th *fn)
+{
+    if (a->vm && s->vl_eq_vlmax) {
+        TCGv_i64 src1 = tcg_temp_new_i64();
+
+        tcg_gen_ext_tl_i64(src1, get_gpr(s, a->rs1, EXT_SIGN));
+        gvec_fn(s->sew, th_vreg_ofs(s, a->rd), th_vreg_ofs(s, a->rs2),
+                src1, MAXSZ_TH(s), MAXSZ_TH(s));
+        mark_vs_dirty(s);
+        return true;
+    }
+    return opivx_trans_th(a->rd, a->rs1, a->rs2, a->vm, fn, s);
+}
+
+/* OPIVX with GVEC IR */
+#define GEN_OPIVX_GVEC_TRANS_TH(NAME, SUF)                         \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    static gen_helper_opivx_th * const fns[4] = {                  \
+        gen_helper_##NAME##_b, gen_helper_##NAME##_h,              \
+        gen_helper_##NAME##_w, gen_helper_##NAME##_d,              \
+    };                                                             \
+    if (!opivx_check_th(s, a)) {                                   \
+        return false;                                              \
+    }                                                              \
+    return do_opivx_gvec_th(s, a, tcg_gen_gvec_##SUF, fns[s->sew]);\
+}
+
+GEN_OPIVX_GVEC_TRANS_TH(th_vadd_vx, adds)
+GEN_OPIVX_GVEC_TRANS_TH(th_vsub_vx, subs)
+GEN_OPIVX_GVEC_TRANS_TH(th_vrsub_vx, rsubs)
+
+#define imm_mode_t_th imm_mode_t
+
+static int64_t extract_imm_th(DisasContext *s, uint32_t imm,
+                              imm_mode_t_th imm_mode)
+{
+    return extract_imm(s, imm, imm_mode);
+}
+
+/*
+ * This function is almost the copy of opivi_trans, except:
+ * 1) XTheadVector using different data encoding, add MLEN,
+ *    delete VTA and VMA.
+ */
+static bool opivi_trans_th(uint32_t vd, uint32_t imm, uint32_t vs2, uint32_t vm,
+                           gen_helper_opivx_th *fn, DisasContext *s,
+                           imm_mode_t_th imm_mode)
+{
+    TCGv_ptr dest, src2, mask;
+    TCGv src1;
+    TCGv_i32 desc;
+    uint32_t data = 0;
+
+    TCGLabel *over = gen_new_label();
+    tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+    dest = tcg_temp_new_ptr();
+    mask = tcg_temp_new_ptr();
+    src2 = tcg_temp_new_ptr();
+    src1 = tcg_constant_tl(extract_imm_th(s, imm, imm_mode));
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                      s->cfg_ptr->vlen / 8, data));
+
+    tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, vd));
+    tcg_gen_addi_ptr(src2, tcg_env, th_vreg_ofs(s, vs2));
+    tcg_gen_addi_ptr(mask, tcg_env, th_vreg_ofs(s, 0));
+
+    fn(dest, mask, src1, src2, tcg_env, desc);
+
+    mark_vs_dirty(s);
+    gen_set_label(over);
+    return true;
+}
+#define GVecGen2iFn_Th GVecGen2iFn
+/*
+ * This function is almost the copy of do_opivi_gvec, except:
+ * 1) XTheadVector simplifies the judgment logic of whether
+ *    to accelerate or not for its lack of fractional LMUL and
+ *    VTA.
+ */
+static inline bool
+do_opivi_gvec_th(DisasContext *s, arg_rmrr *a, GVecGen2iFn_Th *gvec_fn,
+                 gen_helper_opivx_th *fn, imm_mode_t_th imm_mode)
+{
+    if (a->vm && s->vl_eq_vlmax) {
+        gvec_fn(s->sew, th_vreg_ofs(s, a->rd), th_vreg_ofs(s, a->rs2),
+                extract_imm_th(s, a->rs1, imm_mode), MAXSZ_TH(s), MAXSZ_TH(s));
+        mark_vs_dirty(s);
+        return true;
+    }
+    return opivi_trans_th(a->rd, a->rs1, a->rs2, a->vm, fn, s, imm_mode);
+}
+
+/* OPIVI with GVEC IR */
+#define GEN_OPIVI_GVEC_TRANS_TH(NAME, IMM_MODE, OPIVX, SUF)        \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    static gen_helper_opivx_th * const fns[4] = {                  \
+        gen_helper_##OPIVX##_b, gen_helper_##OPIVX##_h,            \
+        gen_helper_##OPIVX##_w, gen_helper_##OPIVX##_d,            \
+    };                                                             \
+    if (!opivx_check_th(s, a)) {                                   \
+        return false;                                              \
+    }                                                              \
+    return do_opivi_gvec_th(s, a, tcg_gen_gvec_##SUF,              \
+                            fns[s->sew], IMM_MODE);                \
+}
+
+GEN_OPIVI_GVEC_TRANS_TH(th_vadd_vi, IMM_SX, th_vadd_vx, addi)
+GEN_OPIVI_GVEC_TRANS_TH(th_vrsub_vi, IMM_SX, th_vrsub_vx, rsubi)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vadd_vv)
-TH_TRANS_STUB(th_vadd_vx)
-TH_TRANS_STUB(th_vadd_vi)
-TH_TRANS_STUB(th_vsub_vv)
-TH_TRANS_STUB(th_vsub_vx)
-TH_TRANS_STUB(th_vrsub_vx)
-TH_TRANS_STUB(th_vrsub_vi)
 TH_TRANS_STUB(th_vwaddu_vv)
 TH_TRANS_STUB(th_vwaddu_vx)
 TH_TRANS_STUB(th_vwadd_vv)
