@@ -182,6 +182,20 @@ static bool th_check_nf(DisasContext *s, uint32_t vd, uint32_t nf)
     return size <= 8 && vd + size <= 32;
 }
 
+/*
+ * The destination vector register group cannot overlap a source vector register
+ * group of a different element width.
+ *
+ * The overlap check rule is different from RVV1.0. The function
+ * "require_noover" describes the check rule in RVV1.0. In general, in some
+ * situations, the destination vector register group can overlap the source
+ * vector register group of a different element width. While XTheadVector not.
+ */
+static inline bool th_check_overlap_group(int rd, int dlen, int rs, int slen)
+{
+    return ((rd >= rs + slen) || (rs >= rd + dlen));
+}
+
 static bool th_check_isa_ill(DisasContext *s)
 {
     return vext_check_isa_ill(s);
@@ -473,6 +487,83 @@ GEN_TH_TRANS(th_vsh_v, 1, r2nfvm, st_us_op_th, st_us_check_th)
 GEN_TH_TRANS(th_vsw_v, 2, r2nfvm, st_us_op_th, st_us_check_th)
 GEN_TH_TRANS(th_vse_v, 3, r2nfvm, st_us_op_th, st_us_check_th)
 
+/*
+ *** index load and store
+ */
+
+#define gen_helper_ldst_index_th gen_helper_ldst_index
+
+static bool ldst_index_trans_th(uint32_t vd, uint32_t rs1, uint32_t vs2,
+                                uint32_t data, gen_helper_ldst_index_th *fn,
+                                DisasContext *s, bool is_store)
+{
+    return ldst_index_trans(vd, rs1, vs2, data, fn, s, is_store);
+}
+
+/*
+ * This function is almost the copy of ld_index_op, except:
+ * 1) different data encoding
+ * 2) XTheadVector has more insns to handle zero/sign-extended.
+ */
+static bool ld_index_op_th(DisasContext *s, arg_rnfvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_ldst_index_th *fn;
+    static gen_helper_ldst_index_th * const fns[7][4] = {
+        { gen_helper_th_vlxb_v_b,  gen_helper_th_vlxb_v_h,
+          gen_helper_th_vlxb_v_w,  gen_helper_th_vlxb_v_d },
+        { NULL,                    gen_helper_th_vlxh_v_h,
+          gen_helper_th_vlxh_v_w,  gen_helper_th_vlxh_v_d },
+        { NULL,                    NULL,
+          gen_helper_th_vlxw_v_w,  gen_helper_th_vlxw_v_d },
+        { gen_helper_th_vlxe_v_b,  gen_helper_th_vlxe_v_h,
+          gen_helper_th_vlxe_v_w,  gen_helper_th_vlxe_v_d },
+        { gen_helper_th_vlxbu_v_b, gen_helper_th_vlxbu_v_h,
+          gen_helper_th_vlxbu_v_w, gen_helper_th_vlxbu_v_d },
+        { NULL,                    gen_helper_th_vlxhu_v_h,
+          gen_helper_th_vlxhu_v_w, gen_helper_th_vlxhu_v_d },
+        { NULL,                    NULL,
+          gen_helper_th_vlxwu_v_w, gen_helper_th_vlxwu_v_d },
+    };
+
+    fn =  fns[seq][s->sew];
+    if (fn == NULL) {
+        return false;
+    }
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, NF, a->nf);
+    return ldst_index_trans_th(a->rd, a->rs1, a->rs2, data, fn, s, false);
+}
+
+/*
+ * For vector indexed segment loads, the destination vector register
+ * groups cannot overlap the source vector register group (specified by
+ * `vs2`), else an illegal instruction exception is raised.
+ */
+static bool ld_index_check_th(DisasContext *s, arg_rnfvm* a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_nf(s, a->rd, a->nf) &&
+            ((a->nf == 1) ||
+            th_check_overlap_group(a->rd, a->nf << s->lmul,
+                                   a->rs2, 1 << s->lmul)));
+}
+
+GEN_TH_TRANS(th_vlxb_v, 0, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxh_v, 1, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxw_v, 2, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxe_v, 3, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxbu_v, 4, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxhu_v, 5, rnfvm, ld_index_op_th, ld_index_check_th)
+GEN_TH_TRANS(th_vlxwu_v, 6, rnfvm, ld_index_op_th, ld_index_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
@@ -486,13 +577,6 @@ TH_TRANS_STUB(th_vleff_v)
 TH_TRANS_STUB(th_vlbuff_v)
 TH_TRANS_STUB(th_vlhuff_v)
 TH_TRANS_STUB(th_vlwuff_v)
-TH_TRANS_STUB(th_vlxb_v)
-TH_TRANS_STUB(th_vlxh_v)
-TH_TRANS_STUB(th_vlxw_v)
-TH_TRANS_STUB(th_vlxe_v)
-TH_TRANS_STUB(th_vlxbu_v)
-TH_TRANS_STUB(th_vlxhu_v)
-TH_TRANS_STUB(th_vlxwu_v)
 TH_TRANS_STUB(th_vsxb_v)
 TH_TRANS_STUB(th_vsxh_v)
 TH_TRANS_STUB(th_vsxw_v)
