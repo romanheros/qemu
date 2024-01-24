@@ -119,6 +119,11 @@ static bool trans_th_vsetvli(DisasContext *s, arg_th_vsetvli *a)
     return th_vsetvl(s, a->rd, a->rs1, dst);
 }
 
+static uint32_t th_vreg_ofs(DisasContext *s, int reg)
+{
+    return vreg_ofs(s, reg);
+}
+
 /* check functions */
 
 /*
@@ -663,30 +668,150 @@ GEN_TH_TRANS(th_vlbuff_v, 4, r2nfvm, ldff_op_th, ld_us_check_th)
 GEN_TH_TRANS(th_vlhuff_v, 5, r2nfvm, ldff_op_th, ld_us_check_th)
 GEN_TH_TRANS(th_vlwuff_v, 6, r2nfvm, ldff_op_th, ld_us_check_th)
 
+
+/*
+ *** vector atomic operation
+ */
+typedef void gen_helper_amo(TCGv_ptr, TCGv_ptr, TCGv, TCGv_ptr,
+                            TCGv_env, TCGv_i32);
+static bool amo_trans_th(uint32_t vd, uint32_t rs1, uint32_t vs2,
+                         uint32_t data, gen_helper_amo *fn, DisasContext *s)
+{
+    TCGv_ptr dest, mask, index;
+    TCGv base;
+    TCGv_i32 desc;
+
+    TCGLabel *over = gen_new_label();
+    tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+    dest = tcg_temp_new_ptr();
+    mask = tcg_temp_new_ptr();
+    index = tcg_temp_new_ptr();
+    base = get_gpr(s, rs1, EXT_NONE);
+    desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                      s->cfg_ptr->vlen / 8, data));
+
+    tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, vd));
+    tcg_gen_addi_ptr(index, tcg_env, th_vreg_ofs(s, vs2));
+    tcg_gen_addi_ptr(mask, tcg_env, th_vreg_ofs(s, 0));
+
+    fn(dest, mask, base, index, tcg_env, desc);
+
+    gen_set_label(over);
+    return true;
+}
+
+static bool amo_op_th(DisasContext *s, arg_rwdvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_amo *fn;
+    static gen_helper_amo *const fnsw[9] = {
+        /* no atomic operation */
+        gen_helper_th_vamoswapw_v_w,
+        gen_helper_th_vamoaddw_v_w,
+        gen_helper_th_vamoxorw_v_w,
+        gen_helper_th_vamoandw_v_w,
+        gen_helper_th_vamoorw_v_w,
+        gen_helper_th_vamominw_v_w,
+        gen_helper_th_vamomaxw_v_w,
+        gen_helper_th_vamominuw_v_w,
+        gen_helper_th_vamomaxuw_v_w
+    };
+    static gen_helper_amo *const fnsd[18] = {
+        gen_helper_th_vamoswapw_v_d,
+        gen_helper_th_vamoaddw_v_d,
+        gen_helper_th_vamoxorw_v_d,
+        gen_helper_th_vamoandw_v_d,
+        gen_helper_th_vamoorw_v_d,
+        gen_helper_th_vamominw_v_d,
+        gen_helper_th_vamomaxw_v_d,
+        gen_helper_th_vamominuw_v_d,
+        gen_helper_th_vamomaxuw_v_d,
+        gen_helper_th_vamoswapd_v_d,
+        gen_helper_th_vamoaddd_v_d,
+        gen_helper_th_vamoxord_v_d,
+        gen_helper_th_vamoandd_v_d,
+        gen_helper_th_vamoord_v_d,
+        gen_helper_th_vamomind_v_d,
+        gen_helper_th_vamomaxd_v_d,
+        gen_helper_th_vamominud_v_d,
+        gen_helper_th_vamomaxud_v_d
+    };
+
+    if (tb_cflags(s->base.tb) & CF_PARALLEL) {
+        gen_helper_exit_atomic(tcg_env);
+        s->base.is_jmp = DISAS_NORETURN;
+        return true;
+    }
+    switch (s->sew) {
+    case 0 ... 2:
+        assert(seq < ARRAY_SIZE(fnsw));
+        fn = fnsw[seq];
+        break;
+    case 3:
+        /* XLEN check done in amo_check(). */
+        assert(seq < ARRAY_SIZE(fnsd));
+        fn = fnsd[seq];
+        break;
+    default:
+        g_assert_not_reached();
+    }
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, WD, a->wd);
+    return amo_trans_th(a->rd, a->rs1, a->rs2, data, fn, s);
+}
+/*
+ * There are two rules check here.
+ *
+ * 1. SEW must be at least as wide as the AMO memory element size.
+ *
+ * 2. If SEW is greater than XLEN, an illegal instruction exception is raised.
+ */
+static bool amo_check_th(DisasContext *s, arg_rwdvm* a)
+{
+    return (require_thv(s) &&
+            !s->vill && has_ext(s, RVA) &&
+            (!a->wd || th_check_overlap_mask(s, a->rd, a->vm, false)) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            ((1 << s->sew) <= (get_xlen(s) / 8)) &&
+            ((1 << s->sew) >= 4));
+}
+
+static bool amo_check64_th(DisasContext *s, arg_rwdvm* a)
+{
+    REQUIRE_64BIT(s);
+    return amo_check_th(s, a);
+}
+
+GEN_TH_TRANS(th_vamoswapw_v, 0, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamoaddw_v, 1, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamoxorw_v, 2, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamoandw_v, 3, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamoorw_v, 4, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamominw_v, 5, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamomaxw_v, 6, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamominuw_v, 7, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamomaxuw_v, 8, rwdvm, amo_op_th, amo_check_th)
+GEN_TH_TRANS(th_vamoswapd_v, 9, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamoaddd_v, 10, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamoxord_v, 11, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamoandd_v, 12, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamoord_v, 13, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamomind_v, 14, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamomaxd_v, 15, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamominud_v, 16, rwdvm, amo_op_th, amo_check64_th)
+GEN_TH_TRANS(th_vamomaxud_v, 17, rwdvm, amo_op_th, amo_check64_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vamoswapw_v)
-TH_TRANS_STUB(th_vamoaddw_v)
-TH_TRANS_STUB(th_vamoxorw_v)
-TH_TRANS_STUB(th_vamoandw_v)
-TH_TRANS_STUB(th_vamoorw_v)
-TH_TRANS_STUB(th_vamominw_v)
-TH_TRANS_STUB(th_vamomaxw_v)
-TH_TRANS_STUB(th_vamominuw_v)
-TH_TRANS_STUB(th_vamomaxuw_v)
-TH_TRANS_STUB(th_vamoswapd_v)
-TH_TRANS_STUB(th_vamoaddd_v)
-TH_TRANS_STUB(th_vamoxord_v)
-TH_TRANS_STUB(th_vamoandd_v)
-TH_TRANS_STUB(th_vamoord_v)
-TH_TRANS_STUB(th_vamomind_v)
-TH_TRANS_STUB(th_vamomaxd_v)
-TH_TRANS_STUB(th_vamominud_v)
-TH_TRANS_STUB(th_vamomaxud_v)
 TH_TRANS_STUB(th_vadd_vv)
 TH_TRANS_STUB(th_vadd_vx)
 TH_TRANS_STUB(th_vadd_vi)
