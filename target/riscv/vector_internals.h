@@ -224,4 +224,8 @@ void HELPER(NAME)(void *vd, void *v0, target_ulong s1,    \
 #define WOP_UUU_H uint32_t, uint16_t, uint16_t, uint32_t, uint32_t
 #define WOP_UUU_W uint64_t, uint32_t, uint32_t, uint64_t, uint64_t
 
+void probe_pages(CPURISCVState *env, target_ulong addr,
+                        target_ulong len, uintptr_t ra,
+                        MMUAccessType access_type);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

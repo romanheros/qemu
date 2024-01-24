@@ -69,6 +69,14 @@ static inline target_ulong adjust_addr(CPURISCVState *env, target_ulong addr)
     return (addr & ~env->cur_pmmask) | env->cur_pmbase;
 }
 
+static void probe_pages_th(CPURISCVState *env, target_ulong addr,
+                           target_ulong len, uintptr_t ra,
+                           MMUAccessType access_type)
+{
+    probe_pages(env, addr, len, ra, access_type);
+}
+
+
 /* XTheadVector need to clear the tail elements */
 #if HOST_BIG_ENDIAN
 static void th_clear(void *tail, uint32_t cnt, uint32_t tot)
@@ -550,3 +558,120 @@ GEN_TH_ST_INDEX(th_vsxe_v_b, int8_t,  int8_t,  idx_b, ste_b)
 GEN_TH_ST_INDEX(th_vsxe_v_h, int16_t, int16_t, idx_h, ste_h)
 GEN_TH_ST_INDEX(th_vsxe_v_w, int32_t, int32_t, idx_w, ste_w)
 GEN_TH_ST_INDEX(th_vsxe_v_d, int64_t, int64_t, idx_d, ste_d)
+
+/*
+ *** unit-stride fault-only-fisrt load instructions
+ */
+/*
+ * This function is almost the copy of vext_ldff, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different mask/tail elements process policy
+ */
+static inline void
+th_ldff(void *vd, void *v0, target_ulong base,
+        CPURISCVState *env, uint32_t desc,
+        th_ldst_elem_fn *ldst_elem,
+        clear_fn *clear_elem,
+        uint32_t esz, uint32_t msz, uintptr_t ra)
+{
+    void *host;
+    uint32_t i, k, vl = 0;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t nf = th_nf(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vlmax = th_maxsz(desc) / esz;
+    target_ulong addr, offset, remain;
+
+    /* probe every access*/
+    for (i = env->vstart; i < env->vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        addr = adjust_addr(env, base + nf * i * msz);
+        if (i == 0) {
+            probe_pages_th(env, addr, nf * msz, ra, MMU_DATA_LOAD);
+        } else {
+            /* if it triggers an exception, no need to check watchpoint */
+            remain = nf * msz;
+            while (remain > 0) {
+                offset = -(addr | TARGET_PAGE_MASK);
+                host = tlb_vaddr_to_host(env, addr, MMU_DATA_LOAD,
+                                         cpu_mmu_index(env, false));
+                if (host) {
+#ifdef CONFIG_USER_ONLY
+                    if (!page_check_range(addr, offset, PAGE_READ)) {
+                        vl = i;
+                        goto ProbeSuccess;
+                    }
+#else
+                    probe_pages_th(env, addr, offset, ra, MMU_DATA_LOAD);
+#endif
+                } else {
+                    vl = i;
+                    goto ProbeSuccess;
+                }
+                if (remain <=  offset) {
+                    break;
+                }
+                remain -= offset;
+                addr = adjust_addr(env, addr + offset);
+            }
+        }
+    }
+ProbeSuccess:
+    /* load bytes from guest memory */
+    if (vl != 0) {
+        env->vl = vl;
+    }
+    for (i = env->vstart; i < env->vl; i++) {
+        k = 0;
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        while (k < nf) {
+            addr = base + (i * nf + k) * msz;
+            ldst_elem(env, adjust_addr(env, addr), i + k * vlmax, vd, ra);
+            k++;
+        }
+    }
+    env->vstart = 0;
+    /* clear tail elements */
+    if (vl != 0) {
+        return;
+    }
+    for (k = 0; k < nf; k++) {
+        clear_elem(vd, env->vl + k * vlmax, env->vl * esz, vlmax * esz);
+    }
+}
+
+#define GEN_TH_LDFF(NAME, MTYPE, ETYPE, LOAD_FN, CLEAR_FN)       \
+void HELPER(NAME)(void *vd, void *v0, target_ulong base,         \
+                  CPURISCVState *env, uint32_t desc)             \
+{                                                                \
+    th_ldff(vd, v0, base, env, desc, LOAD_FN, CLEAR_FN,          \
+            sizeof(ETYPE), sizeof(MTYPE), GETPC());              \
+}
+
+GEN_TH_LDFF(th_vlbff_v_b,  int8_t,   int8_t,   ldb_b,  clearb_th)
+GEN_TH_LDFF(th_vlbff_v_h,  int8_t,   int16_t,  ldb_h,  clearh_th)
+GEN_TH_LDFF(th_vlbff_v_w,  int8_t,   int32_t,  ldb_w,  clearl_th)
+GEN_TH_LDFF(th_vlbff_v_d,  int8_t,   int64_t,  ldb_d,  clearq_th)
+GEN_TH_LDFF(th_vlhff_v_h,  int16_t,  int16_t,  ldh_h,  clearh_th)
+GEN_TH_LDFF(th_vlhff_v_w,  int16_t,  int32_t,  ldh_w,  clearl_th)
+GEN_TH_LDFF(th_vlhff_v_d,  int16_t,  int64_t,  ldh_d,  clearq_th)
+GEN_TH_LDFF(th_vlwff_v_w,  int32_t,  int32_t,  ldw_w,  clearl_th)
+GEN_TH_LDFF(th_vlwff_v_d,  int32_t,  int64_t,  ldw_d,  clearq_th)
+GEN_TH_LDFF(th_vleff_v_b,  int8_t,   int8_t,   lde_b,  clearb_th)
+GEN_TH_LDFF(th_vleff_v_h,  int16_t,  int16_t,  lde_h,  clearh_th)
+GEN_TH_LDFF(th_vleff_v_w,  int32_t,  int32_t,  lde_w,  clearl_th)
+GEN_TH_LDFF(th_vleff_v_d,  int64_t,  int64_t,  lde_d,  clearq_th)
+GEN_TH_LDFF(th_vlbuff_v_b, uint8_t,  uint8_t,  ldbu_b, clearb_th)
+GEN_TH_LDFF(th_vlbuff_v_h, uint8_t,  uint16_t, ldbu_h, clearh_th)
+GEN_TH_LDFF(th_vlbuff_v_w, uint8_t,  uint32_t, ldbu_w, clearl_th)
+GEN_TH_LDFF(th_vlbuff_v_d, uint8_t,  uint64_t, ldbu_d, clearq_th)
+GEN_TH_LDFF(th_vlhuff_v_h, uint16_t, uint16_t, ldhu_h, clearh_th)
+GEN_TH_LDFF(th_vlhuff_v_w, uint16_t, uint32_t, ldhu_w, clearl_th)
+GEN_TH_LDFF(th_vlhuff_v_d, uint16_t, uint64_t, ldhu_d, clearq_th)
+GEN_TH_LDFF(th_vlwuff_v_w, uint32_t, uint32_t, ldwu_w, clearl_th)
+GEN_TH_LDFF(th_vlwuff_v_d, uint32_t, uint64_t, ldwu_d, clearq_th)

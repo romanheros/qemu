@@ -107,7 +107,7 @@ static inline target_ulong adjust_addr(CPURISCVState *env, target_ulong addr)
  * and page table walk can't fill the TLB entry. Then the guest
  * software can return here after process the exception or never return.
  */
-static void probe_pages(CPURISCVState *env, target_ulong addr,
+void probe_pages(CPURISCVState *env, target_ulong addr,
                         target_ulong len, uintptr_t ra,
                         MMUAccessType access_type)
 {

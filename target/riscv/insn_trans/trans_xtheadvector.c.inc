@@ -609,19 +609,66 @@ GEN_TH_TRANS(th_vsxh_v, 1, rnfvm, st_index_op_th, st_index_check_th)
 GEN_TH_TRANS(th_vsxw_v, 2, rnfvm, st_index_op_th, st_index_check_th)
 GEN_TH_TRANS(th_vsxe_v, 3, rnfvm, st_index_op_th, st_index_check_th)
 
+/*
+ *** unit stride fault-only-first load
+ */
+static bool ldff_trans_th(uint32_t vd, uint32_t rs1, uint32_t data,
+                          gen_helper_ldst_us_th *fn, DisasContext *s)
+{
+    return ldff_trans(vd, rs1, data, fn, s);
+}
+/*
+ * This function is almost the copy of ldff_op, except:
+ * 1) different data encoding.
+ * 2) XTheadVector has more insns to handle zero/sign-extended.
+ */
+static bool ldff_op_th(DisasContext *s, arg_r2nfvm *a, uint8_t seq)
+{
+    uint32_t data = 0;
+    gen_helper_ldst_us_th *fn;
+    static gen_helper_ldst_us_th * const fns[7][4] = {
+        { gen_helper_th_vlbff_v_b,  gen_helper_th_vlbff_v_h,
+          gen_helper_th_vlbff_v_w,  gen_helper_th_vlbff_v_d },
+        { NULL,                     gen_helper_th_vlhff_v_h,
+          gen_helper_th_vlhff_v_w,  gen_helper_th_vlhff_v_d },
+        { NULL,                     NULL,
+          gen_helper_th_vlwff_v_w,  gen_helper_th_vlwff_v_d },
+        { gen_helper_th_vleff_v_b,  gen_helper_th_vleff_v_h,
+          gen_helper_th_vleff_v_w,  gen_helper_th_vleff_v_d },
+        { gen_helper_th_vlbuff_v_b, gen_helper_th_vlbuff_v_h,
+          gen_helper_th_vlbuff_v_w, gen_helper_th_vlbuff_v_d },
+        { NULL,                     gen_helper_th_vlhuff_v_h,
+          gen_helper_th_vlhuff_v_w, gen_helper_th_vlhuff_v_d },
+        { NULL,                     NULL,
+          gen_helper_th_vlwuff_v_w, gen_helper_th_vlwuff_v_d }
+    };
+
+    fn =  fns[seq][s->sew];
+    if (fn == NULL) {
+        return false;
+    }
+
+    data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+    data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+    data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+    data = FIELD_DP32(data, VDATA_TH, NF, a->nf);
+    return ldff_trans_th(a->rd, a->rs1, data, fn, s);
+}
+
+GEN_TH_TRANS(th_vlbff_v, 0, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlhff_v, 1, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlwff_v, 2, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vleff_v, 3, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlbuff_v, 4, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlhuff_v, 5, r2nfvm, ldff_op_th, ld_us_check_th)
+GEN_TH_TRANS(th_vlwuff_v, 6, r2nfvm, ldff_op_th, ld_us_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vlbff_v)
-TH_TRANS_STUB(th_vlhff_v)
-TH_TRANS_STUB(th_vlwff_v)
-TH_TRANS_STUB(th_vleff_v)
-TH_TRANS_STUB(th_vlbuff_v)
-TH_TRANS_STUB(th_vlhuff_v)
-TH_TRANS_STUB(th_vlwuff_v)
 TH_TRANS_STUB(th_vamoswapw_v)
 TH_TRANS_STUB(th_vamoaddw_v)
 TH_TRANS_STUB(th_vamoxorw_v)
