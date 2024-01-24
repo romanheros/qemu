@@ -1381,21 +1381,23 @@ static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                   \
 GEN_OPIVI_TRANS_TH(th_vadc_vim, IMM_SX, th_vadc_vxm, opivx_vadc_check_th)
 GEN_OPIVI_TRANS_TH(th_vmadc_vim, IMM_SX, th_vmadc_vxm, opivx_vmadc_check_th)
 
+/* Vector Bitwise Logical Instructions */
+GEN_OPIVV_GVEC_TRANS_TH(th_vand_vv, and)
+GEN_OPIVV_GVEC_TRANS_TH(th_vor_vv,  or)
+GEN_OPIVV_GVEC_TRANS_TH(th_vxor_vv, xor)
+GEN_OPIVX_GVEC_TRANS_TH(th_vand_vx, ands)
+GEN_OPIVX_GVEC_TRANS_TH(th_vor_vx,  ors)
+GEN_OPIVX_GVEC_TRANS_TH(th_vxor_vx, xors)
+GEN_OPIVI_GVEC_TRANS_TH(th_vand_vi, IMM_SX, th_vand_vx, andi)
+GEN_OPIVI_GVEC_TRANS_TH(th_vor_vi, IMM_SX, th_vor_vx,  ori)
+GEN_OPIVI_GVEC_TRANS_TH(th_vxor_vi, IMM_SX, th_vxor_vx, xori)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vand_vv)
-TH_TRANS_STUB(th_vand_vx)
-TH_TRANS_STUB(th_vand_vi)
-TH_TRANS_STUB(th_vor_vv)
-TH_TRANS_STUB(th_vor_vx)
-TH_TRANS_STUB(th_vor_vi)
-TH_TRANS_STUB(th_vxor_vv)
-TH_TRANS_STUB(th_vxor_vx)
-TH_TRANS_STUB(th_vxor_vi)
 TH_TRANS_STUB(th_vsll_vv)
 TH_TRANS_STUB(th_vsll_vx)
 TH_TRANS_STUB(th_vsll_vi)
