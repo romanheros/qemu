@@ -242,4 +242,23 @@ int16_t do_mulhsu_h(int16_t s2, uint16_t s1);
 int32_t do_mulhsu_w(int32_t s2, uint32_t s1);
 int64_t do_mulhsu_d(int64_t s2, uint64_t s1);
 
+uint8_t saddu8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b);
+uint16_t saddu16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b);
+uint32_t saddu32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b);
+uint64_t saddu64(CPURISCVState *env, int vxrm, uint64_t a, uint64_t b);
+
+int8_t sadd8(CPURISCVState *env, int vxrm, int8_t a, int8_t b);
+int16_t sadd16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
+int32_t sadd32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
+int64_t sadd64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
+
+int8_t ssub8(CPURISCVState *env, int vxrm, int8_t a, int8_t b);
+int16_t ssub16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
+int32_t ssub32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
+int64_t ssub64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
+
+uint8_t ssubu8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b);
+uint16_t ssubu16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b);
+uint32_t ssubu32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b);
+uint64_t ssubu64(CPURISCVState *env, int vxrm, uint64_t a, uint64_t b);
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

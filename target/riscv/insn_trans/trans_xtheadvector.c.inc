@@ -1775,22 +1775,28 @@ GEN_OPIVV_TRANS_TH(th_vmerge_vvm, opivv_vadc_check_th)
 GEN_OPIVX_TRANS_TH(th_vmerge_vxm, opivx_vadc_check_th)
 GEN_OPIVI_TRANS_TH(th_vmerge_vim, IMM_SX, th_vmerge_vxm, opivx_vadc_check_th)
 
+/*
+ *** Vector Fixed-Point Arithmetic Instructions
+ */
+
+/* Vector Single-Width Saturating Add and Subtract */
+GEN_OPIVV_TRANS_TH(th_vsaddu_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vsadd_vv,  opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vssubu_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vssub_vv,  opivv_check_th)
+GEN_OPIVX_TRANS_TH(th_vsaddu_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vsadd_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vssubu_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vssub_vx,  opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vsaddu_vi, IMM_ZX, th_vsaddu_vx, opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vsadd_vi, IMM_SX, th_vsadd_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vsaddu_vv)
-TH_TRANS_STUB(th_vsaddu_vx)
-TH_TRANS_STUB(th_vsaddu_vi)
-TH_TRANS_STUB(th_vsadd_vv)
-TH_TRANS_STUB(th_vsadd_vx)
-TH_TRANS_STUB(th_vsadd_vi)
-TH_TRANS_STUB(th_vssubu_vv)
-TH_TRANS_STUB(th_vssubu_vx)
-TH_TRANS_STUB(th_vssub_vv)
-TH_TRANS_STUB(th_vssub_vx)
 TH_TRANS_STUB(th_vaadd_vv)
 TH_TRANS_STUB(th_vaadd_vx)
 TH_TRANS_STUB(th_vaadd_vi)

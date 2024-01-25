@@ -2071,3 +2071,256 @@ GEN_TH_VMERGE_VX(th_vmerge_vxm_b, int8_t,  H1, clearb_th)
 GEN_TH_VMERGE_VX(th_vmerge_vxm_h, int16_t, H2, clearh_th)
 GEN_TH_VMERGE_VX(th_vmerge_vxm_w, int32_t, H4, clearl_th)
 GEN_TH_VMERGE_VX(th_vmerge_vxm_d, int64_t, H8, clearq_th)
+
+/*
+ *** Vector Fixed-Point Arithmetic Instructions
+ */
+
+/* Vector Single-Width Saturating Add and Subtract */
+
+/*
+ * As fixed point instructions probably have round mode and saturation,
+ * define common macros for fixed point here.
+ */
+typedef void opivv2_rm_fn_th(void *vd, void *vs1, void *vs2, int i,
+                             CPURISCVState *env, int vxrm);
+
+/*
+ * The functions of fix-point operations below are just the copies of
+ * functions in RVV1.0.
+ * The changes in these functions are:
+ * 1) different desc encoding
+ * 2) different tail/masked element process policy
+ * 3) different mask layout
+ */
+#define TH_OPIVV2_RM(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)  \
+static inline void                                                  \
+do_##NAME(void *vd, void *vs1, void *vs2, int i,                    \
+          CPURISCVState *env, int vxrm)                             \
+{                                                                   \
+    TX1 s1 = *((T1 *)vs1 + HS1(i));                                 \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                 \
+    *((TD *)vd + HD(i)) = OP(env, vxrm, s2, s1);                    \
+}
+
+static inline void
+th_vv_rm_1(void *vd, void *v0, void *vs1, void *vs2,
+           CPURISCVState *env,
+           uint32_t vl, uint32_t vm, uint32_t mlen, int vxrm,
+           opivv2_rm_fn_th *fn)
+{
+    for (uint32_t i = env->vstart; i < vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        fn(vd, vs1, vs2, i, env, vxrm);
+    }
+    env->vstart = 0;
+}
+
+static inline void
+th_vv_rm_2(void *vd, void *v0, void *vs1, void *vs2,
+           CPURISCVState *env,
+           uint32_t desc, uint32_t esz, uint32_t dsz,
+           opivv2_rm_fn_th *fn, clear_fn *clearfn)
+{
+    uint32_t vlmax = th_maxsz(desc) / esz;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+
+    switch (env->vxrm) {
+    case 0: /* rnu */
+        th_vv_rm_1(vd, v0, vs1, vs2,
+                   env, vl, vm, mlen, 0, fn);
+        break;
+    case 1: /* rne */
+        th_vv_rm_1(vd, v0, vs1, vs2,
+                   env, vl, vm, mlen, 1, fn);
+        break;
+    case 2: /* rdn */
+        th_vv_rm_1(vd, v0, vs1, vs2,
+                   env, vl, vm, mlen, 2, fn);
+        break;
+    default: /* rod */
+        th_vv_rm_1(vd, v0, vs1, vs2,
+                   env, vl, vm, mlen, 3, fn);
+        break;
+    }
+
+    clearfn(vd, vl, vl * dsz,  vlmax * dsz);
+}
+
+#define GEN_TH_SADD_FUNC(NAME, TYPE)                \
+static TYPE th_##NAME(CPURISCVState *env, int vxrm, \
+                      TYPE s2, TYPE s1)             \
+{                                                   \
+    return NAME(env, vxrm, s2, s1);                 \
+}
+
+GEN_TH_SADD_FUNC(saddu8, uint8_t)
+GEN_TH_SADD_FUNC(saddu16, uint16_t)
+GEN_TH_SADD_FUNC(saddu32, uint32_t)
+GEN_TH_SADD_FUNC(saddu64, uint64_t)
+GEN_TH_SADD_FUNC(sadd8, int8_t)
+GEN_TH_SADD_FUNC(sadd16, int16_t)
+GEN_TH_SADD_FUNC(sadd32, int32_t)
+GEN_TH_SADD_FUNC(sadd64, int64_t)
+GEN_TH_SADD_FUNC(ssub8, int8_t)
+GEN_TH_SADD_FUNC(ssub16, int16_t)
+GEN_TH_SADD_FUNC(ssub32, int32_t)
+GEN_TH_SADD_FUNC(ssub64, int64_t)
+GEN_TH_SADD_FUNC(ssubu8, uint8_t)
+GEN_TH_SADD_FUNC(ssubu16, uint16_t)
+GEN_TH_SADD_FUNC(ssubu32, uint32_t)
+GEN_TH_SADD_FUNC(ssubu64, uint64_t)
+
+/* generate helpers for fixed point instructions with OPIVV format */
+#define GEN_TH_VV_RM(NAME, ESZ, DSZ, CLEAR_FN)                  \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,     \
+                  CPURISCVState *env, uint32_t desc)            \
+{                                                               \
+    th_vv_rm_2(vd, v0, vs1, vs2, env, desc, ESZ, DSZ,           \
+               do_##NAME, CLEAR_FN);                            \
+}
+
+THCALL(TH_OPIVV2_RM, th_vsaddu_vv_b, TH_OP_UUU_B, H1, H1, H1, th_saddu8)
+THCALL(TH_OPIVV2_RM, th_vsaddu_vv_h, TH_OP_UUU_H, H2, H2, H2, th_saddu16)
+THCALL(TH_OPIVV2_RM, th_vsaddu_vv_w, TH_OP_UUU_W, H4, H4, H4, th_saddu32)
+THCALL(TH_OPIVV2_RM, th_vsaddu_vv_d, TH_OP_UUU_D, H8, H8, H8, th_saddu64)
+GEN_TH_VV_RM(th_vsaddu_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vsaddu_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vsaddu_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_RM(th_vsaddu_vv_d, 8, 8, clearq_th)
+
+typedef void opivx2_rm_fn_th(void *vd, target_long s1, void *vs2, int i,
+                             CPURISCVState *env, int vxrm);
+
+#define TH_OPIVX2_RM(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)       \
+static inline void                                                  \
+do_##NAME(void *vd, target_long s1, void *vs2, int i,               \
+          CPURISCVState *env, int vxrm)                             \
+{                                                                   \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                 \
+    *((TD *)vd + HD(i)) = OP(env, vxrm, s2, (TX1)(T1)s1);           \
+}
+
+static inline void
+th_vx_rm_1(void *vd, void *v0, target_long s1, void *vs2,
+           CPURISCVState *env,
+           uint32_t vl, uint32_t vm, uint32_t mlen, int vxrm,
+           opivx2_rm_fn_th *fn)
+{
+    for (uint32_t i = env->vstart; i < vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        fn(vd, s1, vs2, i, env, vxrm);
+    }
+    env->vstart = 0;
+}
+
+static inline void
+th_vx_rm_2(void *vd, void *v0, target_long s1, void *vs2,
+           CPURISCVState *env,
+           uint32_t desc, uint32_t esz, uint32_t dsz,
+           opivx2_rm_fn_th *fn, clear_fn *clearfn)
+{
+    uint32_t vlmax = th_maxsz(desc) / esz;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+
+    switch (env->vxrm) {
+    case 0: /* rnu */
+        th_vx_rm_1(vd, v0, s1, vs2,
+                   env, vl, vm, mlen, 0, fn);
+        break;
+    case 1: /* rne */
+        th_vx_rm_1(vd, v0, s1, vs2,
+                   env, vl, vm, mlen, 1, fn);
+        break;
+    case 2: /* rdn */
+        th_vx_rm_1(vd, v0, s1, vs2,
+                   env, vl, vm, mlen, 2, fn);
+        break;
+    default: /* rod */
+        th_vx_rm_1(vd, v0, s1, vs2,
+                   env, vl, vm, mlen, 3, fn);
+        break;
+    }
+
+    clearfn(vd, vl, vl * dsz,  vlmax * dsz);
+}
+
+/* generate helpers for fixed point instructions with OPIVX format */
+#define GEN_TH_VX_RM(NAME, ESZ, DSZ, CLEAR_FN)            \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1,    \
+        void *vs2, CPURISCVState *env, uint32_t desc)     \
+{                                                         \
+    th_vx_rm_2(vd, v0, s1, vs2, env, desc, ESZ, DSZ,      \
+               do_##NAME, CLEAR_FN);                      \
+}
+
+THCALL(TH_OPIVX2_RM, th_vsaddu_vx_b, TH_OP_UUU_B, H1, H1, th_saddu8)
+THCALL(TH_OPIVX2_RM, th_vsaddu_vx_h, TH_OP_UUU_H, H2, H2, th_saddu16)
+THCALL(TH_OPIVX2_RM, th_vsaddu_vx_w, TH_OP_UUU_W, H4, H4, th_saddu32)
+THCALL(TH_OPIVX2_RM, th_vsaddu_vx_d, TH_OP_UUU_D, H8, H8, th_saddu64)
+GEN_TH_VX_RM(th_vsaddu_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vsaddu_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vsaddu_vx_w, 4, 4, clearl_th)
+GEN_TH_VX_RM(th_vsaddu_vx_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVV2_RM, th_vsadd_vv_b, TH_OP_SSS_B, H1, H1, H1, th_sadd8)
+THCALL(TH_OPIVV2_RM, th_vsadd_vv_h, TH_OP_SSS_H, H2, H2, H2, th_sadd16)
+THCALL(TH_OPIVV2_RM, th_vsadd_vv_w, TH_OP_SSS_W, H4, H4, H4, th_sadd32)
+THCALL(TH_OPIVV2_RM, th_vsadd_vv_d, TH_OP_SSS_D, H8, H8, H8, th_sadd64)
+GEN_TH_VV_RM(th_vsadd_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vsadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vsadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_RM(th_vsadd_vv_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVX2_RM, th_vsadd_vx_b, TH_OP_SSS_B, H1, H1, th_sadd8)
+THCALL(TH_OPIVX2_RM, th_vsadd_vx_h, TH_OP_SSS_H, H2, H2, th_sadd16)
+THCALL(TH_OPIVX2_RM, th_vsadd_vx_w, TH_OP_SSS_W, H4, H4, th_sadd32)
+THCALL(TH_OPIVX2_RM, th_vsadd_vx_d, TH_OP_SSS_D, H8, H8, th_sadd64)
+GEN_TH_VX_RM(th_vsadd_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vsadd_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vsadd_vx_w, 4, 4, clearl_th)
+GEN_TH_VX_RM(th_vsadd_vx_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVV2_RM, th_vssubu_vv_b, TH_OP_UUU_B, H1, H1, H1, th_ssubu8)
+THCALL(TH_OPIVV2_RM, th_vssubu_vv_h, TH_OP_UUU_H, H2, H2, H2, th_ssubu16)
+THCALL(TH_OPIVV2_RM, th_vssubu_vv_w, TH_OP_UUU_W, H4, H4, H4, th_ssubu32)
+THCALL(TH_OPIVV2_RM, th_vssubu_vv_d, TH_OP_UUU_D, H8, H8, H8, th_ssubu64)
+GEN_TH_VV_RM(th_vssubu_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vssubu_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vssubu_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_RM(th_vssubu_vv_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVX2_RM, th_vssubu_vx_b, TH_OP_UUU_B, H1, H1, th_ssubu8)
+THCALL(TH_OPIVX2_RM, th_vssubu_vx_h, TH_OP_UUU_H, H2, H2, th_ssubu16)
+THCALL(TH_OPIVX2_RM, th_vssubu_vx_w, TH_OP_UUU_W, H4, H4, th_ssubu32)
+THCALL(TH_OPIVX2_RM, th_vssubu_vx_d, TH_OP_UUU_D, H8, H8, th_ssubu64)
+GEN_TH_VX_RM(th_vssubu_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vssubu_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vssubu_vx_w, 4, 4, clearl_th)
+GEN_TH_VX_RM(th_vssubu_vx_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVV2_RM, th_vssub_vv_b, TH_OP_SSS_B, H1, H1, H1, th_ssub8)
+THCALL(TH_OPIVV2_RM, th_vssub_vv_h, TH_OP_SSS_H, H2, H2, H2, th_ssub16)
+THCALL(TH_OPIVV2_RM, th_vssub_vv_w, TH_OP_SSS_W, H4, H4, H4, th_ssub32)
+THCALL(TH_OPIVV2_RM, th_vssub_vv_d, TH_OP_SSS_D, H8, H8, H8, th_ssub64)
+GEN_TH_VV_RM(th_vssub_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vssub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vssub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_RM(th_vssub_vv_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVX2_RM, th_vssub_vx_b, TH_OP_SSS_B, H1, H1, th_ssub8)
+THCALL(TH_OPIVX2_RM, th_vssub_vx_h, TH_OP_SSS_H, H2, H2, th_ssub16)
+THCALL(TH_OPIVX2_RM, th_vssub_vx_w, TH_OP_SSS_W, H4, H4, th_ssub32)
+THCALL(TH_OPIVX2_RM, th_vssub_vx_d, TH_OP_SSS_D, H8, H8, th_ssub64)
+GEN_TH_VX_RM(th_vssub_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vssub_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vssub_vx_w, 4, 4, clearl_th)
+GEN_TH_VX_RM(th_vssub_vx_d, 8, 8, clearq_th)
