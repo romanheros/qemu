@@ -2389,3 +2389,214 @@ GEN_TH_VX_RM(th_vsmul_vx_b, 1, 1, clearb_th)
 GEN_TH_VX_RM(th_vsmul_vx_h, 2, 2, clearh_th)
 GEN_TH_VX_RM(th_vsmul_vx_w, 4, 4, clearl_th)
 GEN_TH_VX_RM(th_vsmul_vx_d, 8, 8, clearq_th)
+
+/* Vector Widening Saturating Scaled Multiply-Add */
+
+static uint8_t th_get_round(int vxrm, uint64_t v, uint8_t shift)
+{
+    return get_round(vxrm, v, shift);
+}
+
+static inline uint16_t
+vwsmaccu8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b,
+          uint16_t c)
+{
+    uint8_t round;
+    uint16_t res = (uint16_t)a * b;
+
+    round = th_get_round(vxrm, res, 4);
+    res   = (res >> 4) + round;
+    return saddu16(env, vxrm, c, res);
+}
+
+static inline uint32_t
+vwsmaccu16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b,
+           uint32_t c)
+{
+    uint8_t round;
+    uint32_t res = (uint32_t)a * b;
+
+    round = th_get_round(vxrm, res, 8);
+    res   = (res >> 8) + round;
+    return saddu32(env, vxrm, c, res);
+}
+
+static inline uint64_t
+vwsmaccu32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b,
+           uint64_t c)
+{
+    uint8_t round;
+    uint64_t res = (uint64_t)a * b;
+
+    round = th_get_round(vxrm, res, 16);
+    res   = (res >> 16) + round;
+    return saddu64(env, vxrm, c, res);
+}
+
+#define TH_OPIVV3_RM(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP) \
+static inline void                                                 \
+do_##NAME(void *vd, void *vs1, void *vs2, int i,                   \
+          CPURISCVState *env, int vxrm)                            \
+{                                                                  \
+    TX1 s1 = *((T1 *)vs1 + HS1(i));                                \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                \
+    TD d = *((TD *)vd + HD(i));                                    \
+    *((TD *)vd + HD(i)) = OP(env, vxrm, s2, s1, d);                \
+}
+
+THCALL(TH_OPIVV3_RM, th_vwsmaccu_vv_b, TH_WOP_UUU_B, H2, H1, H1, vwsmaccu8)
+THCALL(TH_OPIVV3_RM, th_vwsmaccu_vv_h, TH_WOP_UUU_H, H4, H2, H2, vwsmaccu16)
+THCALL(TH_OPIVV3_RM, th_vwsmaccu_vv_w, TH_WOP_UUU_W, H8, H4, H4, vwsmaccu32)
+GEN_TH_VV_RM(th_vwsmaccu_vv_b, 1, 2, clearh_th)
+GEN_TH_VV_RM(th_vwsmaccu_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_RM(th_vwsmaccu_vv_w, 4, 8, clearq_th)
+
+#define TH_OPIVX3_RM(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)      \
+static inline void                                                 \
+do_##NAME(void *vd, target_long s1, void *vs2, int i,              \
+          CPURISCVState *env, int vxrm)                            \
+{                                                                  \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                \
+    TD d = *((TD *)vd + HD(i));                                    \
+    *((TD *)vd + HD(i)) = OP(env, vxrm, s2, (TX1)(T1)s1, d);       \
+}
+
+THCALL(TH_OPIVX3_RM, th_vwsmaccu_vx_b, TH_WOP_UUU_B, H2, H1, vwsmaccu8)
+THCALL(TH_OPIVX3_RM, th_vwsmaccu_vx_h, TH_WOP_UUU_H, H4, H2, vwsmaccu16)
+THCALL(TH_OPIVX3_RM, th_vwsmaccu_vx_w, TH_WOP_UUU_W, H8, H4, vwsmaccu32)
+GEN_TH_VX_RM(th_vwsmaccu_vx_b, 1, 2, clearh_th)
+GEN_TH_VX_RM(th_vwsmaccu_vx_h, 2, 4, clearl_th)
+GEN_TH_VX_RM(th_vwsmaccu_vx_w, 4, 8, clearq_th)
+
+static inline int16_t
+vwsmacc8(CPURISCVState *env, int vxrm, int8_t a, int8_t b, int16_t c)
+{
+    uint8_t round;
+    int16_t res = (int16_t)a * b;
+
+    round = th_get_round(vxrm, res, 4);
+    res   = (res >> 4) + round;
+    return sadd16(env, vxrm, c, res);
+}
+
+static inline int32_t
+vwsmacc16(CPURISCVState *env, int vxrm, int16_t a, int16_t b, int32_t c)
+{
+    uint8_t round;
+    int32_t res = (int32_t)a * b;
+
+    round = th_get_round(vxrm, res, 8);
+    res   = (res >> 8) + round;
+    return sadd32(env, vxrm, c, res);
+
+}
+
+static inline int64_t
+vwsmacc32(CPURISCVState *env, int vxrm, int32_t a, int32_t b, int64_t c)
+{
+    uint8_t round;
+    int64_t res = (int64_t)a * b;
+
+    round = th_get_round(vxrm, res, 16);
+    res   = (res >> 16) + round;
+    return sadd64(env, vxrm, c, res);
+}
+
+THCALL(TH_OPIVV3_RM, th_vwsmacc_vv_b, TH_WOP_SSS_B, H2, H1, H1, vwsmacc8)
+THCALL(TH_OPIVV3_RM, th_vwsmacc_vv_h, TH_WOP_SSS_H, H4, H2, H2, vwsmacc16)
+THCALL(TH_OPIVV3_RM, th_vwsmacc_vv_w, TH_WOP_SSS_W, H8, H4, H4, vwsmacc32)
+GEN_TH_VV_RM(th_vwsmacc_vv_b, 1, 2, clearh_th)
+GEN_TH_VV_RM(th_vwsmacc_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_RM(th_vwsmacc_vv_w, 4, 8, clearq_th)
+THCALL(TH_OPIVX3_RM, th_vwsmacc_vx_b, TH_WOP_SSS_B, H2, H1, vwsmacc8)
+THCALL(TH_OPIVX3_RM, th_vwsmacc_vx_h, TH_WOP_SSS_H, H4, H2, vwsmacc16)
+THCALL(TH_OPIVX3_RM, th_vwsmacc_vx_w, TH_WOP_SSS_W, H8, H4, vwsmacc32)
+GEN_TH_VX_RM(th_vwsmacc_vx_b, 1, 2, clearh_th)
+GEN_TH_VX_RM(th_vwsmacc_vx_h, 2, 4, clearl_th)
+GEN_TH_VX_RM(th_vwsmacc_vx_w, 4, 8, clearq_th)
+
+static inline int16_t
+vwsmaccsu8(CPURISCVState *env, int vxrm, uint8_t a, int8_t b, int16_t c)
+{
+    uint8_t round;
+    int16_t res = a * (int16_t)b;
+
+    round = th_get_round(vxrm, res, 4);
+    res   = (res >> 4) + round;
+    return ssub16(env, vxrm, c, res);
+}
+
+static inline int32_t
+vwsmaccsu16(CPURISCVState *env, int vxrm, uint16_t a, int16_t b, uint32_t c)
+{
+    uint8_t round;
+    int32_t res = a * (int32_t)b;
+
+    round = th_get_round(vxrm, res, 8);
+    res   = (res >> 8) + round;
+    return ssub32(env, vxrm, c, res);
+}
+
+static inline int64_t
+vwsmaccsu32(CPURISCVState *env, int vxrm, uint32_t a, int32_t b, int64_t c)
+{
+    uint8_t round;
+    int64_t res = a * (int64_t)b;
+
+    round = th_get_round(vxrm, res, 16);
+    res   = (res >> 16) + round;
+    return ssub64(env, vxrm, c, res);
+}
+
+THCALL(TH_OPIVV3_RM, th_vwsmaccsu_vv_b, TH_WOP_SSU_B, H2, H1, H1, vwsmaccsu8)
+THCALL(TH_OPIVV3_RM, th_vwsmaccsu_vv_h, TH_WOP_SSU_H, H4, H2, H2, vwsmaccsu16)
+THCALL(TH_OPIVV3_RM, th_vwsmaccsu_vv_w, TH_WOP_SSU_W, H8, H4, H4, vwsmaccsu32)
+GEN_TH_VV_RM(th_vwsmaccsu_vv_b, 1, 2, clearh_th)
+GEN_TH_VV_RM(th_vwsmaccsu_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_RM(th_vwsmaccsu_vv_w, 4, 8, clearq_th)
+THCALL(TH_OPIVX3_RM, th_vwsmaccsu_vx_b, TH_WOP_SSU_B, H2, H1, vwsmaccsu8)
+THCALL(TH_OPIVX3_RM, th_vwsmaccsu_vx_h, TH_WOP_SSU_H, H4, H2, vwsmaccsu16)
+THCALL(TH_OPIVX3_RM, th_vwsmaccsu_vx_w, TH_WOP_SSU_W, H8, H4, vwsmaccsu32)
+GEN_TH_VX_RM(th_vwsmaccsu_vx_b, 1, 2, clearh_th)
+GEN_TH_VX_RM(th_vwsmaccsu_vx_h, 2, 4, clearl_th)
+GEN_TH_VX_RM(th_vwsmaccsu_vx_w, 4, 8, clearq_th)
+
+static inline int16_t
+vwsmaccus8(CPURISCVState *env, int vxrm, int8_t a, uint8_t b, int16_t c)
+{
+    uint8_t round;
+    int16_t res = (int16_t)a * b;
+
+    round = th_get_round(vxrm, res, 4);
+    res   = (res >> 4) + round;
+    return ssub16(env, vxrm, c, res);
+}
+
+static inline int32_t
+vwsmaccus16(CPURISCVState *env, int vxrm, int16_t a, uint16_t b, int32_t c)
+{
+    uint8_t round;
+    int32_t res = (int32_t)a * b;
+
+    round = th_get_round(vxrm, res, 8);
+    res   = (res >> 8) + round;
+    return ssub32(env, vxrm, c, res);
+}
+
+static inline int64_t
+vwsmaccus32(CPURISCVState *env, int vxrm, int32_t a, uint32_t b, int64_t c)
+{
+    uint8_t round;
+    int64_t res = (int64_t)a * b;
+
+    round = th_get_round(vxrm, res, 16);
+    res   = (res >> 16) + round;
+    return ssub64(env, vxrm, c, res);
+}
+
+THCALL(TH_OPIVX3_RM, th_vwsmaccus_vx_b, TH_WOP_SUS_B, H2, H1, vwsmaccus8)
+THCALL(TH_OPIVX3_RM, th_vwsmaccus_vx_h, TH_WOP_SUS_H, H4, H2, vwsmaccus16)
+THCALL(TH_OPIVX3_RM, th_vwsmaccus_vx_w, TH_WOP_SUS_W, H8, H4, vwsmaccus32)
+GEN_TH_VX_RM(th_vwsmaccus_vx_b, 1, 2, clearh_th)
+GEN_TH_VX_RM(th_vwsmaccus_vx_h, 2, 4, clearl_th)
+GEN_TH_VX_RM(th_vwsmaccus_vx_w, 4, 8, clearq_th)

@@ -272,4 +272,6 @@ int16_t vsmul16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
 int32_t vsmul32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
 int64_t vsmul64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
 
+uint8_t get_round(int vxrm, uint64_t v, uint8_t shift);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */
