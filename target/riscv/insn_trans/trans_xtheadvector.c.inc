@@ -1588,20 +1588,22 @@ GEN_OPIVI_TRANS_TH(th_vmsle_vi, IMM_SX, th_vmsle_vx, opivx_cmp_check_th)
 GEN_OPIVI_TRANS_TH(th_vmsgtu_vi, IMM_ZX, th_vmsgtu_vx, opivx_cmp_check_th)
 GEN_OPIVI_TRANS_TH(th_vmsgt_vi, IMM_SX, th_vmsgt_vx, opivx_cmp_check_th)
 
+/* Vector Integer Min/Max Instructions */
+GEN_OPIVV_GVEC_TRANS_TH(th_vminu_vv, umin)
+GEN_OPIVV_GVEC_TRANS_TH(th_vmin_vv,  smin)
+GEN_OPIVV_GVEC_TRANS_TH(th_vmaxu_vv, umax)
+GEN_OPIVV_GVEC_TRANS_TH(th_vmax_vv,  smax)
+GEN_OPIVX_TRANS_TH(th_vminu_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vmin_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vmaxu_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vmax_vx,  opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vminu_vv)
-TH_TRANS_STUB(th_vminu_vx)
-TH_TRANS_STUB(th_vmin_vv)
-TH_TRANS_STUB(th_vmin_vx)
-TH_TRANS_STUB(th_vmaxu_vv)
-TH_TRANS_STUB(th_vmaxu_vx)
-TH_TRANS_STUB(th_vmax_vv)
-TH_TRANS_STUB(th_vmax_vx)
 TH_TRANS_STUB(th_vmul_vv)
 TH_TRANS_STUB(th_vmul_vx)
 TH_TRANS_STUB(th_vmulh_vv)
