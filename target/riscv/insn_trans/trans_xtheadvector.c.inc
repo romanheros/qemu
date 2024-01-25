@@ -1608,20 +1608,22 @@ GEN_OPIVX_TRANS_TH(th_vmulh_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vmulhu_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vmulhsu_vx, opivx_check_th)
 
+/* Vector Integer Divide Instructions */
+GEN_OPIVV_TRANS_TH(th_vdivu_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vdiv_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vremu_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vrem_vv, opivv_check_th)
+GEN_OPIVX_TRANS_TH(th_vdivu_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vdiv_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vremu_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vrem_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vdivu_vv)
-TH_TRANS_STUB(th_vdivu_vx)
-TH_TRANS_STUB(th_vdiv_vv)
-TH_TRANS_STUB(th_vdiv_vx)
-TH_TRANS_STUB(th_vremu_vv)
-TH_TRANS_STUB(th_vremu_vx)
-TH_TRANS_STUB(th_vrem_vv)
-TH_TRANS_STUB(th_vrem_vx)
 TH_TRANS_STUB(th_vwmulu_vv)
 TH_TRANS_STUB(th_vwmulu_vx)
 TH_TRANS_STUB(th_vwmulsu_vv)
