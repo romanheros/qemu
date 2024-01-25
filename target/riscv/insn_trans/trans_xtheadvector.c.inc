@@ -1392,21 +1392,63 @@ GEN_OPIVI_GVEC_TRANS_TH(th_vand_vi, IMM_SX, th_vand_vx, andi)
 GEN_OPIVI_GVEC_TRANS_TH(th_vor_vi, IMM_SX, th_vor_vx,  ori)
 GEN_OPIVI_GVEC_TRANS_TH(th_vxor_vi, IMM_SX, th_vxor_vx, xori)
 
+/* Vector Single-Width Bit Shift Instructions */
+GEN_OPIVV_GVEC_TRANS_TH(th_vsll_vv,  shlv)
+GEN_OPIVV_GVEC_TRANS_TH(th_vsrl_vv,  shrv)
+GEN_OPIVV_GVEC_TRANS_TH(th_vsra_vv,  sarv)
+
+#define GVecGen2sFn32_Th GVecGen2sFn32
+/*
+ * This function is almost the copy of do_opivx_gvec_shift, except:
+ * 1) XTheadVector simplifies the judgment logic of whether
+ *    to accelerate or not for its lack of fractional LMUL and
+ *    VTA.
+ */
+static inline bool
+do_opivx_gvec_shift_th(DisasContext *s, arg_rmrr *a, GVecGen2sFn32_Th *gvec_fn,
+                       gen_helper_opivx_th *fn)
+{
+    if (a->vm && s->vl_eq_vlmax) {
+        TCGv_i32 src1 = tcg_temp_new_i32();
+
+        tcg_gen_trunc_tl_i32(src1, get_gpr(s, a->rs1, EXT_NONE));
+        tcg_gen_extract_i32(src1, src1, 0, s->sew + 3);
+        gvec_fn(s->sew, th_vreg_ofs(s, a->rd), th_vreg_ofs(s, a->rs2),
+                src1, MAXSZ_TH(s), MAXSZ_TH(s));
+
+        mark_vs_dirty(s);
+        return true;
+    }
+    return opivx_trans_th(a->rd, a->rs1, a->rs2, a->vm, fn, s);
+}
+
+#define GEN_OPIVX_GVEC_SHIFT_TRANS_TH(NAME, SUF)                          \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                    \
+{                                                                         \
+    static gen_helper_opivx * const fns[4] = {                            \
+        gen_helper_##NAME##_b, gen_helper_##NAME##_h,                     \
+        gen_helper_##NAME##_w, gen_helper_##NAME##_d,                     \
+    };                                                                    \
+    if (!opivx_check_th(s, a)) {                                          \
+        return false;                                                     \
+    }                                                                     \
+    return do_opivx_gvec_shift_th(s, a, tcg_gen_gvec_##SUF, fns[s->sew]); \
+}
+
+GEN_OPIVX_GVEC_SHIFT_TRANS_TH(th_vsll_vx,  shls)
+GEN_OPIVX_GVEC_SHIFT_TRANS_TH(th_vsrl_vx,  shrs)
+GEN_OPIVX_GVEC_SHIFT_TRANS_TH(th_vsra_vx,  sars)
+
+GEN_OPIVI_GVEC_TRANS_TH(th_vsll_vi, IMM_TRUNC_SEW, th_vsll_vx,  shli)
+GEN_OPIVI_GVEC_TRANS_TH(th_vsrl_vi, IMM_TRUNC_SEW, th_vsrl_vx,  shri)
+GEN_OPIVI_GVEC_TRANS_TH(th_vsra_vi, IMM_TRUNC_SEW, th_vsra_vx,  sari)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vsll_vv)
-TH_TRANS_STUB(th_vsll_vx)
-TH_TRANS_STUB(th_vsll_vi)
-TH_TRANS_STUB(th_vsrl_vv)
-TH_TRANS_STUB(th_vsrl_vx)
-TH_TRANS_STUB(th_vsrl_vi)
-TH_TRANS_STUB(th_vsra_vv)
-TH_TRANS_STUB(th_vsra_vx)
-TH_TRANS_STUB(th_vsra_vi)
 TH_TRANS_STUB(th_vnsrl_vv)
 TH_TRANS_STUB(th_vnsrl_vx)
 TH_TRANS_STUB(th_vnsrl_vi)

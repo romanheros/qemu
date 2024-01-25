@@ -1294,3 +1294,114 @@ GEN_TH_VX(th_vxor_vx_b, 1, 1, clearb_th)
 GEN_TH_VX(th_vxor_vx_h, 2, 2, clearh_th)
 GEN_TH_VX(th_vxor_vx_w, 4, 4, clearl_th)
 GEN_TH_VX(th_vxor_vx_d, 8, 8, clearq_th)
+
+/* Vector Single-Width Bit Shift Instructions */
+#define TH_SLL(N, M)  (N << (M))
+#define TH_SRL(N, M)  (N >> (M))
+/*
+ * GEN_TH_SHIFT_VV and GEN_TH_SHIFT_VX are almost the copy of
+ * GEN_VEXT_SHIFT_VV and GEN_VEXT_SHIFT_VX, except:
+ * 1) different mask layout
+ * 2) different data encoding
+ * 3) different masked/tail elements process policy
+ */
+/* generate the helpers for shift instructions with two vector operators */
+#define GEN_TH_SHIFT_VV(NAME, TS1, TS2, HS1, HS2, OP, MASK, CLEAR_FN)     \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,                          \
+                  void *vs2, CPURISCVState *env, uint32_t desc)           \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    uint32_t esz = sizeof(TS1);                                           \
+    uint32_t vlmax = th_maxsz(desc) / esz;                                \
+    uint32_t i;                                                           \
+                                                                          \
+    for (i = env->vstart; i < vl; i++) {                                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        TS1 s1 = *((TS1 *)vs1 + HS1(i));                                  \
+        TS2 s2 = *((TS2 *)vs2 + HS2(i));                                  \
+        *((TS1 *)vd + HS1(i)) = OP(s2, s1 & MASK);                        \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                              \
+}
+
+GEN_TH_SHIFT_VV(th_vsll_vv_b, uint8_t,  uint8_t, H1, H1, TH_SLL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VV(th_vsll_vv_h, uint16_t, uint16_t, H2, H2, TH_SLL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VV(th_vsll_vv_w, uint32_t, uint32_t, H4, H4, TH_SLL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VV(th_vsll_vv_d, uint64_t, uint64_t, H8, H8, TH_SLL,
+                0x3f, clearq_th)
+
+GEN_TH_SHIFT_VV(th_vsrl_vv_b, uint8_t, uint8_t, H1, H1, TH_SRL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VV(th_vsrl_vv_h, uint16_t, uint16_t, H2, H2, TH_SRL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VV(th_vsrl_vv_w, uint32_t, uint32_t, H4, H4, TH_SRL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VV(th_vsrl_vv_d, uint64_t, uint64_t, H8, H8, TH_SRL,
+                0x3f, clearq_th)
+
+GEN_TH_SHIFT_VV(th_vsra_vv_b, uint8_t,  int8_t, H1, H1, TH_SRL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VV(th_vsra_vv_h, uint16_t, int16_t, H2, H2, TH_SRL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VV(th_vsra_vv_w, uint32_t, int32_t, H4, H4, TH_SRL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VV(th_vsra_vv_d, uint64_t, int64_t, H8, H8, TH_SRL,
+                0x3f, clearq_th)
+
+/* generate the helpers for shift instructions with one vector and one scalar */
+#define GEN_TH_SHIFT_VX(NAME, TD, TS2, HD, HS2, OP, MASK, CLEAR_FN)   \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1,                \
+        void *vs2, CPURISCVState *env, uint32_t desc)                 \
+{                                                                     \
+    uint32_t mlen = th_mlen(desc);                                    \
+    uint32_t vm = th_vm(desc);                                        \
+    uint32_t vl = env->vl;                                            \
+    uint32_t esz = sizeof(TD);                                        \
+    uint32_t vlmax = th_maxsz(desc) / esz;                            \
+    uint32_t i;                                                       \
+                                                                      \
+    for (i = env->vstart; i < vl; i++) {                              \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                      \
+            continue;                                                 \
+        }                                                             \
+        TS2 s2 = *((TS2 *)vs2 + HS2(i));                              \
+        *((TD *)vd + HD(i)) = OP(s2, s1 & MASK);                      \
+    }                                                                 \
+    env->vstart = 0;                                                  \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                          \
+}
+
+GEN_TH_SHIFT_VX(th_vsll_vx_b, uint8_t, int8_t, H1, H1, TH_SLL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VX(th_vsll_vx_h, uint16_t, int16_t, H2, H2, TH_SLL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VX(th_vsll_vx_w, uint32_t, int32_t, H4, H4, TH_SLL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VX(th_vsll_vx_d, uint64_t, int64_t, H8, H8, TH_SLL,
+                0x3f, clearq_th)
+
+GEN_TH_SHIFT_VX(th_vsrl_vx_b, uint8_t, uint8_t, H1, H1, TH_SRL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VX(th_vsrl_vx_h, uint16_t, uint16_t, H2, H2, TH_SRL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VX(th_vsrl_vx_w, uint32_t, uint32_t, H4, H4, TH_SRL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VX(th_vsrl_vx_d, uint64_t, uint64_t, H8, H8, TH_SRL,
+                0x3f, clearq_th)
+
+GEN_TH_SHIFT_VX(th_vsra_vx_b, int8_t, int8_t, H1, H1, TH_SRL,
+                0x7, clearb_th)
+GEN_TH_SHIFT_VX(th_vsra_vx_h, int16_t, int16_t, H2, H2, TH_SRL,
+                0xf, clearh_th)
+GEN_TH_SHIFT_VX(th_vsra_vx_w, int32_t, int32_t, H4, H4, TH_SRL,
+                0x1f, clearl_th)
+GEN_TH_SHIFT_VX(th_vsra_vx_d, int64_t, int64_t, H8, H8, TH_SRL,
+                0x3f, clearq_th)
