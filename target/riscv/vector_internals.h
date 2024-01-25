@@ -274,4 +274,14 @@ int64_t vsmul64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
 
 uint8_t get_round(int vxrm, uint64_t v, uint8_t shift);
 
+uint8_t vssrl8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b);
+uint16_t vssrl16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b);
+uint32_t vssrl32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b);
+uint64_t vssrl64(CPURISCVState *env, int vxrm, uint64_t a, uint64_t b);
+
+int8_t vssra8(CPURISCVState *env, int vxrm, int8_t a, int8_t b);
+int16_t vssra16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
+int32_t vssra32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
+int64_t vssra64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

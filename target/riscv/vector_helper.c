@@ -2564,8 +2564,7 @@ GEN_VEXT_VX_RM(vsmul_vx_w, 4)
 GEN_VEXT_VX_RM(vsmul_vx_d, 8)
 
 /* Vector Single-Width Scaling Shift Instructions */
-static inline uint8_t
-vssrl8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b)
+uint8_t vssrl8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b)
 {
     uint8_t round, shift = b & 0x7;
     uint8_t res;
@@ -2574,24 +2573,21 @@ vssrl8(CPURISCVState *env, int vxrm, uint8_t a, uint8_t b)
     res = (a >> shift) + round;
     return res;
 }
-static inline uint16_t
-vssrl16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b)
+uint16_t vssrl16(CPURISCVState *env, int vxrm, uint16_t a, uint16_t b)
 {
     uint8_t round, shift = b & 0xf;
 
     round = get_round(vxrm, a, shift);
     return (a >> shift) + round;
 }
-static inline uint32_t
-vssrl32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b)
+uint32_t vssrl32(CPURISCVState *env, int vxrm, uint32_t a, uint32_t b)
 {
     uint8_t round, shift = b & 0x1f;
 
     round = get_round(vxrm, a, shift);
     return (a >> shift) + round;
 }
-static inline uint64_t
-vssrl64(CPURISCVState *env, int vxrm, uint64_t a, uint64_t b)
+uint64_t vssrl64(CPURISCVState *env, int vxrm, uint64_t a, uint64_t b)
 {
     uint8_t round, shift = b & 0x3f;
 
@@ -2616,32 +2612,28 @@ GEN_VEXT_VX_RM(vssrl_vx_h, 2)
 GEN_VEXT_VX_RM(vssrl_vx_w, 4)
 GEN_VEXT_VX_RM(vssrl_vx_d, 8)
 
-static inline int8_t
-vssra8(CPURISCVState *env, int vxrm, int8_t a, int8_t b)
+int8_t vssra8(CPURISCVState *env, int vxrm, int8_t a, int8_t b)
 {
     uint8_t round, shift = b & 0x7;
 
     round = get_round(vxrm, a, shift);
     return (a >> shift) + round;
 }
-static inline int16_t
-vssra16(CPURISCVState *env, int vxrm, int16_t a, int16_t b)
+int16_t vssra16(CPURISCVState *env, int vxrm, int16_t a, int16_t b)
 {
     uint8_t round, shift = b & 0xf;
 
     round = get_round(vxrm, a, shift);
     return (a >> shift) + round;
 }
-static inline int32_t
-vssra32(CPURISCVState *env, int vxrm, int32_t a, int32_t b)
+int32_t vssra32(CPURISCVState *env, int vxrm, int32_t a, int32_t b)
 {
     uint8_t round, shift = b & 0x1f;
 
     round = get_round(vxrm, a, shift);
     return (a >> shift) + round;
 }
-static inline int64_t
-vssra64(CPURISCVState *env, int vxrm, int64_t a, int64_t b)
+int64_t vssra64(CPURISCVState *env, int vxrm, int64_t a, int64_t b)
 {
     uint8_t round, shift = b & 0x3f;
 

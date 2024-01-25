@@ -1811,18 +1811,20 @@ GEN_OPIVX_WIDEN_TRANS_TH(th_vwsmacc_vx, opivx_widen_check_th)
 GEN_OPIVX_WIDEN_TRANS_TH(th_vwsmaccsu_vx, opivx_widen_check_th)
 GEN_OPIVX_WIDEN_TRANS_TH(th_vwsmaccus_vx, opivx_widen_check_th)
 
+/* Vector Single-Width Scaling Shift Instructions */
+GEN_OPIVV_TRANS_TH(th_vssrl_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vssra_vv, opivv_check_th)
+GEN_OPIVX_TRANS_TH(th_vssrl_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vssra_vx,  opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vssrl_vi, IMM_TRUNC_SEW, th_vssrl_vx, opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vssra_vi, IMM_TRUNC_SEW, th_vssra_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vssrl_vv)
-TH_TRANS_STUB(th_vssrl_vx)
-TH_TRANS_STUB(th_vssrl_vi)
-TH_TRANS_STUB(th_vssra_vv)
-TH_TRANS_STUB(th_vssra_vx)
-TH_TRANS_STUB(th_vssra_vi)
 TH_TRANS_STUB(th_vnclipu_vv)
 TH_TRANS_STUB(th_vnclipu_vx)
 TH_TRANS_STUB(th_vnclipu_vi)
