@@ -1443,18 +1443,109 @@ GEN_OPIVI_GVEC_TRANS_TH(th_vsll_vi, IMM_TRUNC_SEW, th_vsll_vx,  shli)
 GEN_OPIVI_GVEC_TRANS_TH(th_vsrl_vi, IMM_TRUNC_SEW, th_vsrl_vx,  shri)
 GEN_OPIVI_GVEC_TRANS_TH(th_vsra_vi, IMM_TRUNC_SEW, th_vsra_vx,  sari)
 
+/* Vector Narrowing Integer Right Shift Instructions */
+static bool opivv_narrow_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, true) &&
+            th_check_reg(s, a->rs1, false) &&
+            th_check_overlap_group(a->rd, 1 << s->lmul, a->rs2,
+                2 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3));
+}
+
+/* OPIVV with NARROW */
+/* different data encoding */
+#define GEN_OPIVV_NARROW_TRANS_TH(NAME)                            \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    if (opivv_narrow_check_th(s, a)) {                             \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_4_ptr * const fns[3] = {            \
+            gen_helper_##NAME##_b,                                 \
+            gen_helper_##NAME##_h,                                 \
+            gen_helper_##NAME##_w,                                 \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs1),                 \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew]);                           \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+GEN_OPIVV_NARROW_TRANS_TH(th_vnsra_vv)
+GEN_OPIVV_NARROW_TRANS_TH(th_vnsrl_vv)
+
+static bool opivx_narrow_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, false) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, true) &&
+            th_check_overlap_group(a->rd, 1 << s->lmul, a->rs2,
+                2 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3));
+}
+
+/* OPIVX with NARROW */
+#define GEN_OPIVX_NARROW_TRANS_TH(NAME)                                     \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                      \
+{                                                                           \
+    if (opivx_narrow_check_th(s, a)) {                                      \
+        static gen_helper_opivx * const fns[3] = {                          \
+            gen_helper_##NAME##_b,                                          \
+            gen_helper_##NAME##_h,                                          \
+            gen_helper_##NAME##_w,                                          \
+        };                                                                  \
+        return opivx_trans_th(a->rd, a->rs1, a->rs2, a->vm, fns[s->sew], s);\
+    }                                                                       \
+    return false;                                                           \
+}
+
+GEN_OPIVX_NARROW_TRANS_TH(th_vnsra_vx)
+GEN_OPIVX_NARROW_TRANS_TH(th_vnsrl_vx)
+
+/* OPIVI with NARROW */
+#define GEN_OPIVI_NARROW_TRANS_TH(NAME, ZX, OPIVX)                       \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                   \
+{                                                                        \
+    if (opivx_narrow_check_th(s, a)) {                                   \
+        static gen_helper_opivx * const fns[3] = {                       \
+            gen_helper_##OPIVX##_b,                                      \
+            gen_helper_##OPIVX##_h,                                      \
+            gen_helper_##OPIVX##_w,                                      \
+        };                                                               \
+        return opivi_trans_th(a->rd, a->rs1, a->rs2, a->vm,              \
+                              fns[s->sew], s, ZX);                       \
+    }                                                                    \
+    return false;                                                        \
+}
+
+GEN_OPIVI_NARROW_TRANS_TH(th_vnsra_vi, IMM_ZX, th_vnsra_vx)
+GEN_OPIVI_NARROW_TRANS_TH(th_vnsrl_vi, IMM_ZX, th_vnsrl_vx)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vnsrl_vv)
-TH_TRANS_STUB(th_vnsrl_vx)
-TH_TRANS_STUB(th_vnsrl_vi)
-TH_TRANS_STUB(th_vnsra_vv)
-TH_TRANS_STUB(th_vnsra_vx)
-TH_TRANS_STUB(th_vnsra_vi)
 TH_TRANS_STUB(th_vmseq_vv)
 TH_TRANS_STUB(th_vmseq_vx)
 TH_TRANS_STUB(th_vmseq_vi)
