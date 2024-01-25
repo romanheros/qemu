@@ -1598,20 +1598,22 @@ GEN_OPIVX_TRANS_TH(th_vmin_vx,  opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vmaxu_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vmax_vx,  opivx_check_th)
 
+/* Vector Single-Width Integer Multiply Instructions */
+GEN_OPIVV_GVEC_TRANS_TH(th_vmul_vv,  mul)
+GEN_OPIVV_TRANS_TH(th_vmulh_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vmulhu_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vmulhsu_vv, opivv_check_th)
+GEN_OPIVX_GVEC_TRANS_TH(th_vmul_vx,  muls)
+GEN_OPIVX_TRANS_TH(th_vmulh_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vmulhu_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vmulhsu_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmul_vv)
-TH_TRANS_STUB(th_vmul_vx)
-TH_TRANS_STUB(th_vmulh_vv)
-TH_TRANS_STUB(th_vmulh_vx)
-TH_TRANS_STUB(th_vmulhu_vv)
-TH_TRANS_STUB(th_vmulhu_vx)
-TH_TRANS_STUB(th_vmulhsu_vv)
-TH_TRANS_STUB(th_vmulhsu_vx)
 TH_TRANS_STUB(th_vdivu_vv)
 TH_TRANS_STUB(th_vdivu_vx)
 TH_TRANS_STUB(th_vdiv_vv)

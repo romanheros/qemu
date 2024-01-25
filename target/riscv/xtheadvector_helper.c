@@ -837,6 +837,11 @@ GEN_TH_AMO(th_vamomaxuw_v_w, uint32_t, uint32_t, idx_w, clearl_th)
 #define TH_OP_UUU_W uint32_t, uint32_t, uint32_t, uint32_t, uint32_t
 #define TH_OP_UUU_D uint64_t, uint64_t, uint64_t, uint64_t, uint64_t
 
+#define TH_OP_SUS_B int8_t, uint8_t, int8_t, uint8_t, int8_t
+#define TH_OP_SUS_H int16_t, uint16_t, int16_t, uint16_t, int16_t
+#define TH_OP_SUS_W int32_t, uint32_t, int32_t, uint32_t, int32_t
+#define TH_OP_SUS_D int64_t, uint64_t, int64_t, uint64_t, int64_t
+
 /* operation of two vector elements */
 #define opivv2_fn_th opivv2_fn
 
@@ -1628,3 +1633,91 @@ GEN_TH_VX(th_vmax_vx_b, 1, 1, clearb_th)
 GEN_TH_VX(th_vmax_vx_h, 2, 2, clearh_th)
 GEN_TH_VX(th_vmax_vx_w, 4, 4, clearl_th)
 GEN_TH_VX(th_vmax_vx_d, 8, 8, clearq_th)
+
+/* Vector Single-Width Integer Multiply Instructions */
+#define TH_MUL(N, M) (N * M)
+THCALL(TH_OPIVV2, th_vmul_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_MUL)
+THCALL(TH_OPIVV2, th_vmul_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_MUL)
+THCALL(TH_OPIVV2, th_vmul_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_MUL)
+THCALL(TH_OPIVV2, th_vmul_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_MUL)
+GEN_TH_VV(th_vmul_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmul_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmul_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmul_vv_d, 8, 8, clearq_th)
+
+#define GEN_TH_MUL_FUNC(NAME, TYPE)             \
+static TYPE th_##NAME(TYPE s2, TYPE s1)         \
+{                                               \
+    return do_##NAME(s2, s1);                   \
+}
+
+GEN_TH_MUL_FUNC(mulh_b, int8_t)
+GEN_TH_MUL_FUNC(mulh_h, int16_t)
+GEN_TH_MUL_FUNC(mulh_w, int32_t)
+GEN_TH_MUL_FUNC(mulh_d, int64_t)
+GEN_TH_MUL_FUNC(mulhu_b, uint8_t)
+GEN_TH_MUL_FUNC(mulhu_h, uint16_t)
+GEN_TH_MUL_FUNC(mulhu_w, uint32_t)
+GEN_TH_MUL_FUNC(mulhu_d, uint64_t)
+GEN_TH_MUL_FUNC(mulhsu_b, uint8_t)
+GEN_TH_MUL_FUNC(mulhsu_h, uint16_t)
+GEN_TH_MUL_FUNC(mulhsu_w, uint32_t)
+GEN_TH_MUL_FUNC(mulhsu_d, uint64_t)
+
+THCALL(TH_OPIVV2, th_vmulh_vv_b, TH_OP_SSS_B, H1, H1, H1, th_mulh_b)
+THCALL(TH_OPIVV2, th_vmulh_vv_h, TH_OP_SSS_H, H2, H2, H2, th_mulh_h)
+THCALL(TH_OPIVV2, th_vmulh_vv_w, TH_OP_SSS_W, H4, H4, H4, th_mulh_w)
+THCALL(TH_OPIVV2, th_vmulh_vv_d, TH_OP_SSS_D, H8, H8, H8, th_mulh_d)
+THCALL(TH_OPIVV2, th_vmulhu_vv_b, TH_OP_UUU_B, H1, H1, H1, th_mulhu_b)
+THCALL(TH_OPIVV2, th_vmulhu_vv_h, TH_OP_UUU_H, H2, H2, H2, th_mulhu_h)
+THCALL(TH_OPIVV2, th_vmulhu_vv_w, TH_OP_UUU_W, H4, H4, H4, th_mulhu_w)
+THCALL(TH_OPIVV2, th_vmulhu_vv_d, TH_OP_UUU_D, H8, H8, H8, th_mulhu_d)
+THCALL(TH_OPIVV2, th_vmulhsu_vv_b, TH_OP_SUS_B, H1, H1, H1, th_mulhsu_b)
+THCALL(TH_OPIVV2, th_vmulhsu_vv_h, TH_OP_SUS_H, H2, H2, H2, th_mulhsu_h)
+THCALL(TH_OPIVV2, th_vmulhsu_vv_w, TH_OP_SUS_W, H4, H4, H4, th_mulhsu_w)
+THCALL(TH_OPIVV2, th_vmulhsu_vv_d, TH_OP_SUS_D, H8, H8, H8, th_mulhsu_d)
+GEN_TH_VV(th_vmulh_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmulh_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmulh_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmulh_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vmulhu_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmulhu_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmulhu_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmulhu_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vmulhsu_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmulhsu_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmulhsu_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmulhsu_vv_d, 8, 8, clearq_th)
+
+THCALL(TH_OPIVX2, th_vmul_vx_b, TH_OP_SSS_B, H1, H1, TH_MUL)
+THCALL(TH_OPIVX2, th_vmul_vx_h, TH_OP_SSS_H, H2, H2, TH_MUL)
+THCALL(TH_OPIVX2, th_vmul_vx_w, TH_OP_SSS_W, H4, H4, TH_MUL)
+THCALL(TH_OPIVX2, th_vmul_vx_d, TH_OP_SSS_D, H8, H8, TH_MUL)
+THCALL(TH_OPIVX2, th_vmulh_vx_b, TH_OP_SSS_B, H1, H1, th_mulh_b)
+THCALL(TH_OPIVX2, th_vmulh_vx_h, TH_OP_SSS_H, H2, H2, th_mulh_h)
+THCALL(TH_OPIVX2, th_vmulh_vx_w, TH_OP_SSS_W, H4, H4, th_mulh_w)
+THCALL(TH_OPIVX2, th_vmulh_vx_d, TH_OP_SSS_D, H8, H8, th_mulh_d)
+THCALL(TH_OPIVX2, th_vmulhu_vx_b, TH_OP_UUU_B, H1, H1, th_mulhu_b)
+THCALL(TH_OPIVX2, th_vmulhu_vx_h, TH_OP_UUU_H, H2, H2, th_mulhu_h)
+THCALL(TH_OPIVX2, th_vmulhu_vx_w, TH_OP_UUU_W, H4, H4, th_mulhu_w)
+THCALL(TH_OPIVX2, th_vmulhu_vx_d, TH_OP_UUU_D, H8, H8, th_mulhu_d)
+THCALL(TH_OPIVX2, th_vmulhsu_vx_b, TH_OP_SUS_B, H1, H1, th_mulhsu_b)
+THCALL(TH_OPIVX2, th_vmulhsu_vx_h, TH_OP_SUS_H, H2, H2, th_mulhsu_h)
+THCALL(TH_OPIVX2, th_vmulhsu_vx_w, TH_OP_SUS_W, H4, H4, th_mulhsu_w)
+THCALL(TH_OPIVX2, th_vmulhsu_vx_d, TH_OP_SUS_D, H8, H8, th_mulhsu_d)
+GEN_TH_VX(th_vmul_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmul_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmul_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmul_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vmulh_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmulh_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmulh_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmulh_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vmulhu_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmulhu_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmulhu_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmulhu_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vmulhsu_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmulhsu_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmulhsu_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmulhsu_vx_d, 8, 8, clearq_th)

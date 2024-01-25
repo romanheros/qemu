@@ -1384,22 +1384,22 @@ GEN_VEXT_VV(vmul_vv_h, 2)
 GEN_VEXT_VV(vmul_vv_w, 4)
 GEN_VEXT_VV(vmul_vv_d, 8)
 
-static int8_t do_mulh_b(int8_t s2, int8_t s1)
+int8_t do_mulh_b(int8_t s2, int8_t s1)
 {
     return (int16_t)s2 * (int16_t)s1 >> 8;
 }
 
-static int16_t do_mulh_h(int16_t s2, int16_t s1)
+int16_t do_mulh_h(int16_t s2, int16_t s1)
 {
     return (int32_t)s2 * (int32_t)s1 >> 16;
 }
 
-static int32_t do_mulh_w(int32_t s2, int32_t s1)
+int32_t do_mulh_w(int32_t s2, int32_t s1)
 {
     return (int64_t)s2 * (int64_t)s1 >> 32;
 }
 
-static int64_t do_mulh_d(int64_t s2, int64_t s1)
+int64_t do_mulh_d(int64_t s2, int64_t s1)
 {
     uint64_t hi_64, lo_64;
 
@@ -1407,22 +1407,22 @@ static int64_t do_mulh_d(int64_t s2, int64_t s1)
     return hi_64;
 }
 
-static uint8_t do_mulhu_b(uint8_t s2, uint8_t s1)
+uint8_t do_mulhu_b(uint8_t s2, uint8_t s1)
 {
     return (uint16_t)s2 * (uint16_t)s1 >> 8;
 }
 
-static uint16_t do_mulhu_h(uint16_t s2, uint16_t s1)
+uint16_t do_mulhu_h(uint16_t s2, uint16_t s1)
 {
     return (uint32_t)s2 * (uint32_t)s1 >> 16;
 }
 
-static uint32_t do_mulhu_w(uint32_t s2, uint32_t s1)
+uint32_t do_mulhu_w(uint32_t s2, uint32_t s1)
 {
     return (uint64_t)s2 * (uint64_t)s1 >> 32;
 }
 
-static uint64_t do_mulhu_d(uint64_t s2, uint64_t s1)
+uint64_t do_mulhu_d(uint64_t s2, uint64_t s1)
 {
     uint64_t hi_64, lo_64;
 
@@ -1430,17 +1430,17 @@ static uint64_t do_mulhu_d(uint64_t s2, uint64_t s1)
     return hi_64;
 }
 
-static int8_t do_mulhsu_b(int8_t s2, uint8_t s1)
+int8_t do_mulhsu_b(int8_t s2, uint8_t s1)
 {
     return (int16_t)s2 * (uint16_t)s1 >> 8;
 }
 
-static int16_t do_mulhsu_h(int16_t s2, uint16_t s1)
+int16_t do_mulhsu_h(int16_t s2, uint16_t s1)
 {
     return (int32_t)s2 * (uint32_t)s1 >> 16;
 }
 
-static int32_t do_mulhsu_w(int32_t s2, uint32_t s1)
+int32_t do_mulhsu_w(int32_t s2, uint32_t s1)
 {
     return (int64_t)s2 * (uint64_t)s1 >> 32;
 }
@@ -1464,7 +1464,7 @@ static int32_t do_mulhsu_w(int32_t s2, uint32_t s1)
  *      HI_P -= (A < 0 ? B : 0)
  */
 
-static int64_t do_mulhsu_d(int64_t s2, uint64_t s1)
+int64_t do_mulhsu_d(int64_t s2, uint64_t s1)
 {
     uint64_t hi_64, lo_64;
 
