@@ -1972,3 +1972,102 @@ GEN_TH_VX(th_vwmaccsu_vx_w, 4, 8, clearq_th)
 GEN_TH_VX(th_vwmaccus_vx_b, 1, 2, clearh_th)
 GEN_TH_VX(th_vwmaccus_vx_h, 2, 4, clearl_th)
 GEN_TH_VX(th_vwmaccus_vx_w, 4, 8, clearq_th)
+
+/* Vector Integer Merge and Move Instructions */
+/*
+ * The funtions below of VMV and vmerge are all the copy of RVV1.0 functions,
+ * except:
+ * 1) different desc encoding
+ * 2) different tail/masked element process policy
+ * 3) different mask layout
+ */
+#define GEN_TH_VMV_VV(NAME, ETYPE, H, CLEAR_FN)                      \
+void HELPER(NAME)(void *vd, void *vs1, CPURISCVState *env,           \
+                  uint32_t desc)                                     \
+{                                                                    \
+    uint32_t vl = env->vl;                                           \
+    uint32_t esz = sizeof(ETYPE);                                    \
+    uint32_t vlmax = th_maxsz(desc) / esz;                           \
+    uint32_t i;                                                      \
+                                                                     \
+    for (i = env->vstart; i < vl; i++) {                             \
+        ETYPE s1 = *((ETYPE *)vs1 + H(i));                           \
+        *((ETYPE *)vd + H(i)) = s1;                                  \
+    }                                                                \
+    env->vstart = 0;                                                 \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                         \
+}
+
+GEN_TH_VMV_VV(th_vmv_v_v_b, int8_t,  H1, clearb_th)
+GEN_TH_VMV_VV(th_vmv_v_v_h, int16_t, H2, clearh_th)
+GEN_TH_VMV_VV(th_vmv_v_v_w, int32_t, H4, clearl_th)
+GEN_TH_VMV_VV(th_vmv_v_v_d, int64_t, H8, clearq_th)
+
+#define GEN_TH_VMV_VX(NAME, ETYPE, H, CLEAR_FN)                      \
+void HELPER(NAME)(void *vd, uint64_t s1, CPURISCVState *env,         \
+                  uint32_t desc)                                     \
+{                                                                    \
+    uint32_t vl = env->vl;                                           \
+    uint32_t esz = sizeof(ETYPE);                                    \
+    uint32_t vlmax = th_maxsz(desc) / esz;                           \
+    uint32_t i;                                                      \
+                                                                     \
+    for (i = env->vstart; i < vl; i++) {                             \
+        *((ETYPE *)vd + H(i)) = (ETYPE)s1;                           \
+    }                                                                \
+    env->vstart = 0;                                                 \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                         \
+}
+
+GEN_TH_VMV_VX(th_vmv_v_x_b, int8_t,  H1, clearb_th)
+GEN_TH_VMV_VX(th_vmv_v_x_h, int16_t, H2, clearh_th)
+GEN_TH_VMV_VX(th_vmv_v_x_w, int32_t, H4, clearl_th)
+GEN_TH_VMV_VX(th_vmv_v_x_d, int64_t, H8, clearq_th)
+
+#define GEN_TH_VMERGE_VV(NAME, ETYPE, H, CLEAR_FN)                   \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,          \
+                  CPURISCVState *env, uint32_t desc)                 \
+{                                                                    \
+    uint32_t mlen = th_mlen(desc);                                   \
+    uint32_t vl = env->vl;                                           \
+    uint32_t esz = sizeof(ETYPE);                                    \
+    uint32_t vlmax = th_maxsz(desc) / esz;                           \
+    uint32_t i;                                                      \
+                                                                     \
+    for (i = env->vstart; i < vl; i++) {                             \
+        ETYPE *vt = (!th_elem_mask(v0, mlen, i) ? vs2 : vs1);        \
+        *((ETYPE *)vd + H(i)) = *(vt + H(i));                        \
+    }                                                                \
+    env->vstart = 0;                                                 \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                         \
+}
+
+GEN_TH_VMERGE_VV(th_vmerge_vvm_b, int8_t,  H1, clearb_th)
+GEN_TH_VMERGE_VV(th_vmerge_vvm_h, int16_t, H2, clearh_th)
+GEN_TH_VMERGE_VV(th_vmerge_vvm_w, int32_t, H4, clearl_th)
+GEN_TH_VMERGE_VV(th_vmerge_vvm_d, int64_t, H8, clearq_th)
+
+#define GEN_TH_VMERGE_VX(NAME, ETYPE, H, CLEAR_FN)                   \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1,               \
+                  void *vs2, CPURISCVState *env, uint32_t desc)      \
+{                                                                    \
+    uint32_t mlen = th_mlen(desc);                                   \
+    uint32_t vl = env->vl;                                           \
+    uint32_t esz = sizeof(ETYPE);                                    \
+    uint32_t vlmax = th_maxsz(desc) / esz;                           \
+    uint32_t i;                                                      \
+                                                                     \
+    for (i = env->vstart; i < vl; i++) {                             \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                           \
+        ETYPE d = (!th_elem_mask(v0, mlen, i) ? s2 :                 \
+                   (ETYPE)(target_long)s1);                          \
+        *((ETYPE *)vd + H(i)) = d;                                   \
+    }                                                                \
+    env->vstart = 0;                                                 \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                         \
+}
+
+GEN_TH_VMERGE_VX(th_vmerge_vxm_b, int8_t,  H1, clearb_th)
+GEN_TH_VMERGE_VX(th_vmerge_vxm_h, int16_t, H2, clearh_th)
+GEN_TH_VMERGE_VX(th_vmerge_vxm_w, int32_t, H4, clearl_th)
+GEN_TH_VMERGE_VX(th_vmerge_vxm_d, int64_t, H8, clearq_th)

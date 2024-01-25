@@ -1645,18 +1645,142 @@ GEN_OPIVX_WIDEN_TRANS_TH(th_vwmacc_vx, opivx_widen_check_th)
 GEN_OPIVX_WIDEN_TRANS_TH(th_vwmaccsu_vx, opivx_widen_check_th)
 GEN_OPIVX_WIDEN_TRANS_TH(th_vwmaccus_vx, opivx_widen_check_th)
 
+/* Vector Integer Merge and Move Instructions */
+/*
+ * This function is almost the copy of trans_vmv_v_v, except:
+ * 1) XTheadVector simplifies the judgment logic of whether
+ *    to accelerate or not for its lack of fractional LMUL and
+ *    VTA.
+ */
+static bool trans_th_vmv_v_v(DisasContext *s, arg_th_vmv_v_v *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false) &&
+        th_check_reg(s, a->rs1, false)) {
+
+        if (s->vl_eq_vlmax) {
+            tcg_gen_gvec_mov(s->sew, th_vreg_ofs(s, a->rd),
+                             th_vreg_ofs(s, a->rs1),
+                             MAXSZ_TH(s), MAXSZ_TH(s));
+        } else {
+            uint32_t data = FIELD_DP32(0, VDATA_TH, LMUL, s->lmul);
+            static gen_helper_gvec_2_ptr * const fns[4] = {
+                gen_helper_th_vmv_v_v_b, gen_helper_th_vmv_v_v_h,
+                gen_helper_th_vmv_v_v_w, gen_helper_th_vmv_v_v_d,
+            };
+            TCGLabel *over = gen_new_label();
+            tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+            tcg_gen_gvec_2_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, a->rs1),
+                               tcg_env, s->cfg_ptr->vlen / 8,
+                               s->cfg_ptr->vlen / 8, data,
+                               fns[s->sew]);
+            gen_set_label(over);
+        }
+        mark_vs_dirty(s);
+        return true;
+    }
+    return false;
+}
+
+
+#define gen_helper_vmv_vx_th gen_helper_vmv_vx
+/*
+ * This function is almost the copy of trans_vmv_v_x, except:
+ * 1) Simplier judgment logic of acceleration
+ * 2) XTheadVector has no limit of SEW of 8 to 64, Therefore, it is not
+ *    suitable to use acceleration when xlen < SEW.
+ */
+static bool trans_th_vmv_v_x(DisasContext *s, arg_th_vmv_v_x *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false)) {
+
+        TCGv s1;
+        TCGLabel *over = gen_new_label();
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+        s1 = get_gpr(s, a->rs1, EXT_SIGN);
+
+        if (s->vl_eq_vlmax && (8 << s->sew) <= get_xlen(s)) {
+            tcg_gen_gvec_dup_tl(s->sew, th_vreg_ofs(s, a->rd),
+                                MAXSZ_TH(s), MAXSZ_TH(s), s1);
+        } else {
+            TCGv_i32 desc;
+            TCGv_i64 s1_i64 = tcg_temp_new_i64();
+            TCGv_ptr dest = tcg_temp_new_ptr();
+            uint32_t data = FIELD_DP32(0, VDATA_TH, LMUL, s->lmul);
+            static gen_helper_vmv_vx_th * const fns[4] = {
+                gen_helper_th_vmv_v_x_b, gen_helper_th_vmv_v_x_h,
+                gen_helper_th_vmv_v_x_w, gen_helper_th_vmv_v_x_d,
+            };
+
+            tcg_gen_ext_tl_i64(s1_i64, s1);
+            desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                              s->cfg_ptr->vlen / 8, data));
+            tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, a->rd));
+            fns[s->sew](dest, s1_i64, tcg_env, desc);
+        }
+
+        mark_vs_dirty(s);
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}
+
+/* The difference is same as trans_th_vmv_v_v */
+static bool trans_th_vmv_v_i(DisasContext *s, arg_th_vmv_v_i *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false)) {
+
+        int64_t simm = sextract64(a->rs1, 0, 5);
+        if (s->vl_eq_vlmax) {
+            tcg_gen_gvec_dup_imm(s->sew, th_vreg_ofs(s, a->rd),
+                                 MAXSZ_TH(s), MAXSZ_TH(s), simm);
+            mark_vs_dirty(s);
+        } else {
+            TCGv_i32 desc;
+            TCGv_i64 s1;
+            TCGv_ptr dest;
+            uint32_t data = FIELD_DP32(0, VDATA_TH, LMUL, s->lmul);
+            static gen_helper_vmv_vx_th * const fns[4] = {
+                gen_helper_th_vmv_v_x_b, gen_helper_th_vmv_v_x_h,
+                gen_helper_th_vmv_v_x_w, gen_helper_th_vmv_v_x_d,
+            };
+
+            TCGLabel *over = gen_new_label();
+            tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+            s1 = tcg_constant_i64(simm);
+            dest = tcg_temp_new_ptr();
+            desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                              s->cfg_ptr->vlen / 8, data));
+            tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, a->rd));
+            fns[s->sew](dest, s1, tcg_env, desc);
+
+            mark_vs_dirty(s);
+            gen_set_label(over);
+        }
+        return true;
+    }
+    return false;
+}
+
+GEN_OPIVV_TRANS_TH(th_vmerge_vvm, opivv_vadc_check_th)
+GEN_OPIVX_TRANS_TH(th_vmerge_vxm, opivx_vadc_check_th)
+GEN_OPIVI_TRANS_TH(th_vmerge_vim, IMM_SX, th_vmerge_vxm, opivx_vadc_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmv_v_v)
-TH_TRANS_STUB(th_vmv_v_x)
-TH_TRANS_STUB(th_vmv_v_i)
-TH_TRANS_STUB(th_vmerge_vvm)
-TH_TRANS_STUB(th_vmerge_vxm)
-TH_TRANS_STUB(th_vmerge_vim)
 TH_TRANS_STUB(th_vsaddu_vv)
 TH_TRANS_STUB(th_vsaddu_vx)
 TH_TRANS_STUB(th_vsaddu_vi)
