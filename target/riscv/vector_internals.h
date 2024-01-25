@@ -266,4 +266,10 @@ int32_t aadd32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
 int64_t aadd64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
 int32_t asub32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
 int64_t asub64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
+
+int8_t vsmul8(CPURISCVState *env, int vxrm, int8_t a, int8_t b);
+int16_t vsmul16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
+int32_t vsmul32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
+int64_t vsmul64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

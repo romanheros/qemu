@@ -1798,14 +1798,16 @@ GEN_OPIVX_TRANS_TH(th_vaadd_vx,  opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vasub_vx,  opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vaadd_vi, IMM_SX, th_vaadd_vx, opivx_check_th)
 
+/* Vector Single-Width Fractional Multiply with Rounding and Saturation */
+GEN_OPIVV_TRANS_TH(th_vsmul_vv, opivv_check_th)
+GEN_OPIVX_TRANS_TH(th_vsmul_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vsmul_vv)
-TH_TRANS_STUB(th_vsmul_vx)
 TH_TRANS_STUB(th_vwsmaccu_vv)
 TH_TRANS_STUB(th_vwsmaccu_vx)
 TH_TRANS_STUB(th_vwsmacc_vv)

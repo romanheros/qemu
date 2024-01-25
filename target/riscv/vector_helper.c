@@ -2457,7 +2457,7 @@ GEN_VEXT_VX_RM(vasubu_vx_w, 4)
 GEN_VEXT_VX_RM(vasubu_vx_d, 8)
 
 /* Vector Single-Width Fractional Multiply with Rounding and Saturation */
-static inline int8_t vsmul8(CPURISCVState *env, int vxrm, int8_t a, int8_t b)
+int8_t vsmul8(CPURISCVState *env, int vxrm, int8_t a, int8_t b)
 {
     uint8_t round;
     int16_t res;
@@ -2477,7 +2477,7 @@ static inline int8_t vsmul8(CPURISCVState *env, int vxrm, int8_t a, int8_t b)
     }
 }
 
-static int16_t vsmul16(CPURISCVState *env, int vxrm, int16_t a, int16_t b)
+int16_t vsmul16(CPURISCVState *env, int vxrm, int16_t a, int16_t b)
 {
     uint8_t round;
     int32_t res;
@@ -2497,7 +2497,7 @@ static int16_t vsmul16(CPURISCVState *env, int vxrm, int16_t a, int16_t b)
     }
 }
 
-static int32_t vsmul32(CPURISCVState *env, int vxrm, int32_t a, int32_t b)
+int32_t vsmul32(CPURISCVState *env, int vxrm, int32_t a, int32_t b)
 {
     uint8_t round;
     int64_t res;
@@ -2517,7 +2517,7 @@ static int32_t vsmul32(CPURISCVState *env, int vxrm, int32_t a, int32_t b)
     }
 }
 
-static int64_t vsmul64(CPURISCVState *env, int vxrm, int64_t a, int64_t b)
+int64_t vsmul64(CPURISCVState *env, int vxrm, int64_t a, int64_t b)
 {
     uint8_t round;
     uint64_t hi_64, lo_64;
