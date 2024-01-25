@@ -1618,18 +1618,20 @@ GEN_OPIVX_TRANS_TH(th_vdiv_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vremu_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vrem_vx, opivx_check_th)
 
+/* Vector Widening Integer Multiply Instructions */
+GEN_OPIVV_WIDEN_TRANS_TH(th_vwmul_vv, opivv_widen_check_th)
+GEN_OPIVV_WIDEN_TRANS_TH(th_vwmulu_vv, opivv_widen_check_th)
+GEN_OPIVV_WIDEN_TRANS_TH(th_vwmulsu_vv, opivv_widen_check_th)
+GEN_OPIVX_WIDEN_TRANS_TH(th_vwmul_vx, opivx_widen_check_th)
+GEN_OPIVX_WIDEN_TRANS_TH(th_vwmulu_vx, opivx_widen_check_th)
+GEN_OPIVX_WIDEN_TRANS_TH(th_vwmulsu_vx, opivx_widen_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vwmulu_vv)
-TH_TRANS_STUB(th_vwmulu_vx)
-TH_TRANS_STUB(th_vwmulsu_vv)
-TH_TRANS_STUB(th_vwmulsu_vx)
-TH_TRANS_STUB(th_vwmul_vv)
-TH_TRANS_STUB(th_vwmul_vx)
 TH_TRANS_STUB(th_vmacc_vv)
 TH_TRANS_STUB(th_vmacc_vx)
 TH_TRANS_STUB(th_vnmsac_vv)
