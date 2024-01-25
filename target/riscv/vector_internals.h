@@ -284,4 +284,12 @@ int16_t vssra16(CPURISCVState *env, int vxrm, int16_t a, int16_t b);
 int32_t vssra32(CPURISCVState *env, int vxrm, int32_t a, int32_t b);
 int64_t vssra64(CPURISCVState *env, int vxrm, int64_t a, int64_t b);
 
+int8_t vnclip8(CPURISCVState *env, int vxrm, int16_t a, int8_t b);
+int16_t vnclip16(CPURISCVState *env, int vxrm, int32_t a, int16_t b);
+int32_t vnclip32(CPURISCVState *env, int vxrm, int64_t a, int32_t b);
+
+uint8_t vnclipu8(CPURISCVState *env, int vxrm, uint16_t a, uint8_t b);
+uint16_t vnclipu16(CPURISCVState *env, int vxrm, uint32_t a, uint16_t b);
+uint32_t vnclipu32(CPURISCVState *env, int vxrm, uint64_t a, uint32_t b);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

@@ -2646,3 +2646,52 @@ GEN_TH_VX_RM(th_vssra_vx_b, 1, 1, clearb_th)
 GEN_TH_VX_RM(th_vssra_vx_h, 2, 2, clearh_th)
 GEN_TH_VX_RM(th_vssra_vx_w, 4, 4, clearl_th)
 GEN_TH_VX_RM(th_vssra_vx_d, 8, 8, clearq_th)
+
+#define TH_NOP_SSS_B int8_t, int8_t, int16_t, int8_t, int16_t
+#define TH_NOP_SSS_H int16_t, int16_t, int32_t, int16_t, int32_t
+#define TH_NOP_SSS_W int32_t, int32_t, int64_t, int32_t, int64_t
+#define TH_NOP_UUU_B uint8_t, uint8_t, uint16_t, uint8_t, uint16_t
+#define TH_NOP_UUU_H uint16_t, uint16_t, uint32_t, uint16_t, uint32_t
+#define TH_NOP_UUU_W uint32_t, uint32_t, uint64_t, uint32_t, uint64_t
+
+/* Vector Narrowing Fixed-Point Clip Instructions */
+#define GEN_TH_VNCLIP_FUNC(NAME, ATYPE, BTYPE)      \
+static BTYPE th_##NAME(CPURISCVState *env, int vxrm,\
+                      ATYPE s2, BTYPE s1)           \
+{                                                   \
+    return NAME(env, vxrm, s2, s1);                 \
+}
+GEN_TH_VNCLIP_FUNC(vnclip8, int16_t, int8_t)
+GEN_TH_VNCLIP_FUNC(vnclip16, int32_t, int16_t)
+GEN_TH_VNCLIP_FUNC(vnclip32, int64_t, int32_t)
+GEN_TH_VNCLIP_FUNC(vnclipu8, uint16_t, uint8_t)
+GEN_TH_VNCLIP_FUNC(vnclipu16, uint32_t, uint16_t)
+GEN_TH_VNCLIP_FUNC(vnclipu32, uint64_t, uint32_t)
+
+THCALL(TH_OPIVV2_RM, th_vnclip_vv_b, TH_NOP_SSS_B, H1, H2, H1, th_vnclip8)
+THCALL(TH_OPIVV2_RM, th_vnclip_vv_h, TH_NOP_SSS_H, H2, H4, H2, th_vnclip16)
+THCALL(TH_OPIVV2_RM, th_vnclip_vv_w, TH_NOP_SSS_W, H4, H8, H4, th_vnclip32)
+GEN_TH_VV_RM(th_vnclip_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vnclip_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vnclip_vv_w, 4, 4, clearl_th)
+
+THCALL(TH_OPIVX2_RM, th_vnclip_vx_b, TH_NOP_SSS_B, H1, H2, th_vnclip8)
+THCALL(TH_OPIVX2_RM, th_vnclip_vx_h, TH_NOP_SSS_H, H2, H4, th_vnclip16)
+THCALL(TH_OPIVX2_RM, th_vnclip_vx_w, TH_NOP_SSS_W, H4, H8, th_vnclip32)
+GEN_TH_VX_RM(th_vnclip_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vnclip_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vnclip_vx_w, 4, 4, clearl_th)
+
+THCALL(TH_OPIVV2_RM, th_vnclipu_vv_b, TH_NOP_UUU_B, H1, H2, H1, th_vnclipu8)
+THCALL(TH_OPIVV2_RM, th_vnclipu_vv_h, TH_NOP_UUU_H, H2, H4, H2, th_vnclipu16)
+THCALL(TH_OPIVV2_RM, th_vnclipu_vv_w, TH_NOP_UUU_W, H4, H8, H4, th_vnclipu32)
+GEN_TH_VV_RM(th_vnclipu_vv_b, 1, 1, clearb_th)
+GEN_TH_VV_RM(th_vnclipu_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_RM(th_vnclipu_vv_w, 4, 4, clearl_th)
+
+THCALL(TH_OPIVX2_RM, th_vnclipu_vx_b, TH_NOP_UUU_B, H1, H2, th_vnclipu8)
+THCALL(TH_OPIVX2_RM, th_vnclipu_vx_h, TH_NOP_UUU_H, H2, H4, th_vnclipu16)
+THCALL(TH_OPIVX2_RM, th_vnclipu_vx_w, TH_NOP_UUU_W, H4, H8, th_vnclipu32)
+GEN_TH_VX_RM(th_vnclipu_vx_b, 1, 1, clearb_th)
+GEN_TH_VX_RM(th_vnclipu_vx_h, 2, 2, clearh_th)
+GEN_TH_VX_RM(th_vnclipu_vx_w, 4, 4, clearl_th)

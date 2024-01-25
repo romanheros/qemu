@@ -1819,18 +1819,20 @@ GEN_OPIVX_TRANS_TH(th_vssra_vx,  opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vssrl_vi, IMM_TRUNC_SEW, th_vssrl_vx, opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vssra_vi, IMM_TRUNC_SEW, th_vssra_vx, opivx_check_th)
 
+/* Vector Narrowing Fixed-Point Clip Instructions */
+GEN_OPIVV_NARROW_TRANS_TH(th_vnclipu_vv)
+GEN_OPIVV_NARROW_TRANS_TH(th_vnclip_vv)
+GEN_OPIVX_NARROW_TRANS_TH(th_vnclipu_vx)
+GEN_OPIVX_NARROW_TRANS_TH(th_vnclip_vx)
+GEN_OPIVI_NARROW_TRANS_TH(th_vnclipu_vi, IMM_ZX, th_vnclipu_vx)
+GEN_OPIVI_NARROW_TRANS_TH(th_vnclip_vi, IMM_ZX, th_vnclip_vx)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vnclipu_vv)
-TH_TRANS_STUB(th_vnclipu_vx)
-TH_TRANS_STUB(th_vnclipu_vi)
-TH_TRANS_STUB(th_vnclip_vv)
-TH_TRANS_STUB(th_vnclip_vx)
-TH_TRANS_STUB(th_vnclip_vi)
 TH_TRANS_STUB(th_vfadd_vv)
 TH_TRANS_STUB(th_vfadd_vf)
 TH_TRANS_STUB(th_vfsub_vv)

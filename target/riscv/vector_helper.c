@@ -2660,8 +2660,7 @@ GEN_VEXT_VX_RM(vssra_vx_w, 4)
 GEN_VEXT_VX_RM(vssra_vx_d, 8)
 
 /* Vector Narrowing Fixed-Point Clip Instructions */
-static inline int8_t
-vnclip8(CPURISCVState *env, int vxrm, int16_t a, int8_t b)
+int8_t vnclip8(CPURISCVState *env, int vxrm, int16_t a, int8_t b)
 {
     uint8_t round, shift = b & 0xf;
     int16_t res;
@@ -2679,8 +2678,7 @@ vnclip8(CPURISCVState *env, int vxrm, int16_t a, int8_t b)
     }
 }
 
-static inline int16_t
-vnclip16(CPURISCVState *env, int vxrm, int32_t a, int16_t b)
+int16_t vnclip16(CPURISCVState *env, int vxrm, int32_t a, int16_t b)
 {
     uint8_t round, shift = b & 0x1f;
     int32_t res;
@@ -2698,8 +2696,7 @@ vnclip16(CPURISCVState *env, int vxrm, int32_t a, int16_t b)
     }
 }
 
-static inline int32_t
-vnclip32(CPURISCVState *env, int vxrm, int64_t a, int32_t b)
+int32_t vnclip32(CPURISCVState *env, int vxrm, int64_t a, int32_t b)
 {
     uint8_t round, shift = b & 0x3f;
     int64_t res;
@@ -2731,8 +2728,7 @@ GEN_VEXT_VX_RM(vnclip_wx_b, 1)
 GEN_VEXT_VX_RM(vnclip_wx_h, 2)
 GEN_VEXT_VX_RM(vnclip_wx_w, 4)
 
-static inline uint8_t
-vnclipu8(CPURISCVState *env, int vxrm, uint16_t a, uint8_t b)
+uint8_t vnclipu8(CPURISCVState *env, int vxrm, uint16_t a, uint8_t b)
 {
     uint8_t round, shift = b & 0xf;
     uint16_t res;
@@ -2747,8 +2743,7 @@ vnclipu8(CPURISCVState *env, int vxrm, uint16_t a, uint8_t b)
     }
 }
 
-static inline uint16_t
-vnclipu16(CPURISCVState *env, int vxrm, uint32_t a, uint16_t b)
+uint16_t vnclipu16(CPURISCVState *env, int vxrm, uint32_t a, uint16_t b)
 {
     uint8_t round, shift = b & 0x1f;
     uint32_t res;
@@ -2763,8 +2758,7 @@ vnclipu16(CPURISCVState *env, int vxrm, uint32_t a, uint16_t b)
     }
 }
 
-static inline uint32_t
-vnclipu32(CPURISCVState *env, int vxrm, uint64_t a, uint32_t b)
+uint32_t vnclipu32(CPURISCVState *env, int vxrm, uint64_t a, uint32_t b)
 {
     uint8_t round, shift = b & 0x3f;
     uint64_t res;
