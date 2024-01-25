@@ -1540,32 +1540,60 @@ static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                   \
 GEN_OPIVI_NARROW_TRANS_TH(th_vnsra_vi, IMM_ZX, th_vnsra_vx)
 GEN_OPIVI_NARROW_TRANS_TH(th_vnsrl_vi, IMM_ZX, th_vnsrl_vx)
 
+/* Vector Integer Comparison Instructions */
+/*
+ * For all comparison instructions, an illegal instruction exception is raised
+ * if the destination vector register overlaps a source vector register group
+ * and LMUL > 1.
+ */
+static bool opivv_cmp_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            ((th_check_overlap_group(a->rd, 1, a->rs1, 1 << s->lmul) &&
+              th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul)) ||
+             (s->lmul == 0)));
+}
+GEN_OPIVV_TRANS_TH(th_vmseq_vv, opivv_cmp_check_th)
+GEN_OPIVV_TRANS_TH(th_vmsne_vv, opivv_cmp_check_th)
+GEN_OPIVV_TRANS_TH(th_vmsltu_vv, opivv_cmp_check_th)
+GEN_OPIVV_TRANS_TH(th_vmslt_vv, opivv_cmp_check_th)
+GEN_OPIVV_TRANS_TH(th_vmsleu_vv, opivv_cmp_check_th)
+GEN_OPIVV_TRANS_TH(th_vmsle_vv, opivv_cmp_check_th)
+
+static bool opivx_cmp_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            (th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul) ||
+             (s->lmul == 0)));
+}
+
+GEN_OPIVX_TRANS_TH(th_vmseq_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsne_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsltu_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmslt_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsleu_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsle_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsgtu_vx, opivx_cmp_check_th)
+GEN_OPIVX_TRANS_TH(th_vmsgt_vx, opivx_cmp_check_th)
+
+GEN_OPIVI_TRANS_TH(th_vmseq_vi, IMM_SX, th_vmseq_vx, opivx_cmp_check_th)
+GEN_OPIVI_TRANS_TH(th_vmsne_vi, IMM_SX, th_vmsne_vx, opivx_cmp_check_th)
+GEN_OPIVI_TRANS_TH(th_vmsleu_vi, IMM_ZX, th_vmsleu_vx, opivx_cmp_check_th)
+GEN_OPIVI_TRANS_TH(th_vmsle_vi, IMM_SX, th_vmsle_vx, opivx_cmp_check_th)
+GEN_OPIVI_TRANS_TH(th_vmsgtu_vi, IMM_ZX, th_vmsgtu_vx, opivx_cmp_check_th)
+GEN_OPIVI_TRANS_TH(th_vmsgt_vi, IMM_SX, th_vmsgt_vx, opivx_cmp_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmseq_vv)
-TH_TRANS_STUB(th_vmseq_vx)
-TH_TRANS_STUB(th_vmseq_vi)
-TH_TRANS_STUB(th_vmsne_vv)
-TH_TRANS_STUB(th_vmsne_vx)
-TH_TRANS_STUB(th_vmsne_vi)
-TH_TRANS_STUB(th_vmsltu_vv)
-TH_TRANS_STUB(th_vmsltu_vx)
-TH_TRANS_STUB(th_vmslt_vv)
-TH_TRANS_STUB(th_vmslt_vx)
-TH_TRANS_STUB(th_vmsleu_vv)
-TH_TRANS_STUB(th_vmsleu_vx)
-TH_TRANS_STUB(th_vmsleu_vi)
-TH_TRANS_STUB(th_vmsle_vv)
-TH_TRANS_STUB(th_vmsle_vx)
-TH_TRANS_STUB(th_vmsle_vi)
-TH_TRANS_STUB(th_vmsgtu_vx)
-TH_TRANS_STUB(th_vmsgtu_vi)
-TH_TRANS_STUB(th_vmsgt_vx)
-TH_TRANS_STUB(th_vmsgt_vi)
 TH_TRANS_STUB(th_vminu_vv)
 TH_TRANS_STUB(th_vminu_vx)
 TH_TRANS_STUB(th_vmin_vv)

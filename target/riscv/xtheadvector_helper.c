@@ -1431,3 +1431,128 @@ GEN_TH_SHIFT_VX(th_vnsra_vx_h, int16_t, int32_t, H2, H4, TH_SRL,
                 0x1f, clearh_th)
 GEN_TH_SHIFT_VX(th_vnsra_vx_w, int32_t, int64_t, H4, H8, TH_SRL,
                 0x3f, clearl_th)
+
+/* Vector Integer Comparison Instructions */
+#define TH_MSEQ(N, M) (N == M)
+#define TH_MSNE(N, M) (N != M)
+#define TH_MSLT(N, M) (N < M)
+#define TH_MSLE(N, M) (N <= M)
+#define TH_MSGT(N, M) (N > M)
+
+#define GEN_TH_CMP_VV(NAME, ETYPE, H, DO_OP)                  \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,   \
+                  CPURISCVState *env, uint32_t desc)          \
+{                                                             \
+    uint32_t mlen = th_mlen(desc);                            \
+    uint32_t vm = th_vm(desc);                                \
+    uint32_t vl = env->vl;                                    \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);          \
+    uint32_t i;                                               \
+                                                              \
+    for (i = env->vstart; i < vl; i++) {                      \
+        ETYPE s1 = *((ETYPE *)vs1 + H(i));                    \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {              \
+            continue;                                         \
+        }                                                     \
+        th_set_elem_mask(vd, mlen, i, DO_OP(s2, s1));         \
+    }                                                         \
+    env->vstart = 0;                                          \
+    for (; i < vlmax; i++) {                                  \
+        th_set_elem_mask(vd, mlen, i, 0);                     \
+    }                                                         \
+}
+
+GEN_TH_CMP_VV(th_vmseq_vv_b, uint8_t,  H1, TH_MSEQ)
+GEN_TH_CMP_VV(th_vmseq_vv_h, uint16_t, H2, TH_MSEQ)
+GEN_TH_CMP_VV(th_vmseq_vv_w, uint32_t, H4, TH_MSEQ)
+GEN_TH_CMP_VV(th_vmseq_vv_d, uint64_t, H8, TH_MSEQ)
+
+GEN_TH_CMP_VV(th_vmsne_vv_b, uint8_t,  H1, TH_MSNE)
+GEN_TH_CMP_VV(th_vmsne_vv_h, uint16_t, H2, TH_MSNE)
+GEN_TH_CMP_VV(th_vmsne_vv_w, uint32_t, H4, TH_MSNE)
+GEN_TH_CMP_VV(th_vmsne_vv_d, uint64_t, H8, TH_MSNE)
+
+GEN_TH_CMP_VV(th_vmsltu_vv_b, uint8_t,  H1, TH_MSLT)
+GEN_TH_CMP_VV(th_vmsltu_vv_h, uint16_t, H2, TH_MSLT)
+GEN_TH_CMP_VV(th_vmsltu_vv_w, uint32_t, H4, TH_MSLT)
+GEN_TH_CMP_VV(th_vmsltu_vv_d, uint64_t, H8, TH_MSLT)
+
+GEN_TH_CMP_VV(th_vmslt_vv_b, int8_t,  H1, TH_MSLT)
+GEN_TH_CMP_VV(th_vmslt_vv_h, int16_t, H2, TH_MSLT)
+GEN_TH_CMP_VV(th_vmslt_vv_w, int32_t, H4, TH_MSLT)
+GEN_TH_CMP_VV(th_vmslt_vv_d, int64_t, H8, TH_MSLT)
+
+GEN_TH_CMP_VV(th_vmsleu_vv_b, uint8_t,  H1, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsleu_vv_h, uint16_t, H2, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsleu_vv_w, uint32_t, H4, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsleu_vv_d, uint64_t, H8, TH_MSLE)
+
+GEN_TH_CMP_VV(th_vmsle_vv_b, int8_t,  H1, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsle_vv_h, int16_t, H2, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsle_vv_w, int32_t, H4, TH_MSLE)
+GEN_TH_CMP_VV(th_vmsle_vv_d, int64_t, H8, TH_MSLE)
+
+#define GEN_TH_CMP_VX(NAME, ETYPE, H, DO_OP)                        \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,   \
+                  CPURISCVState *env, uint32_t desc)                \
+{                                                                   \
+    uint32_t mlen = th_mlen(desc);                                  \
+    uint32_t vm = th_vm(desc);                                      \
+    uint32_t vl = env->vl;                                          \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);                \
+    uint32_t i;                                                     \
+                                                                    \
+    for (i = env->vstart; i < vl; i++) {                            \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                          \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                    \
+            continue;                                               \
+        }                                                           \
+        th_set_elem_mask(vd, mlen, i,                               \
+                DO_OP(s2, (ETYPE)(target_long)s1));                 \
+    }                                                               \
+    env->vstart = 0;                                                \
+    for (; i < vlmax; i++) {                                        \
+        th_set_elem_mask(vd, mlen, i, 0);                           \
+    }                                                               \
+}
+
+GEN_TH_CMP_VX(th_vmseq_vx_b, uint8_t,  H1, TH_MSEQ)
+GEN_TH_CMP_VX(th_vmseq_vx_h, uint16_t, H2, TH_MSEQ)
+GEN_TH_CMP_VX(th_vmseq_vx_w, uint32_t, H4, TH_MSEQ)
+GEN_TH_CMP_VX(th_vmseq_vx_d, uint64_t, H8, TH_MSEQ)
+
+GEN_TH_CMP_VX(th_vmsne_vx_b, uint8_t,  H1, TH_MSNE)
+GEN_TH_CMP_VX(th_vmsne_vx_h, uint16_t, H2, TH_MSNE)
+GEN_TH_CMP_VX(th_vmsne_vx_w, uint32_t, H4, TH_MSNE)
+GEN_TH_CMP_VX(th_vmsne_vx_d, uint64_t, H8, TH_MSNE)
+
+GEN_TH_CMP_VX(th_vmsltu_vx_b, uint8_t,  H1, TH_MSLT)
+GEN_TH_CMP_VX(th_vmsltu_vx_h, uint16_t, H2, TH_MSLT)
+GEN_TH_CMP_VX(th_vmsltu_vx_w, uint32_t, H4, TH_MSLT)
+GEN_TH_CMP_VX(th_vmsltu_vx_d, uint64_t, H8, TH_MSLT)
+
+GEN_TH_CMP_VX(th_vmslt_vx_b, int8_t,  H1, TH_MSLT)
+GEN_TH_CMP_VX(th_vmslt_vx_h, int16_t, H2, TH_MSLT)
+GEN_TH_CMP_VX(th_vmslt_vx_w, int32_t, H4, TH_MSLT)
+GEN_TH_CMP_VX(th_vmslt_vx_d, int64_t, H8, TH_MSLT)
+
+GEN_TH_CMP_VX(th_vmsleu_vx_b, uint8_t,  H1, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsleu_vx_h, uint16_t, H2, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsleu_vx_w, uint32_t, H4, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsleu_vx_d, uint64_t, H8, TH_MSLE)
+
+GEN_TH_CMP_VX(th_vmsle_vx_b, int8_t,  H1, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsle_vx_h, int16_t, H2, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsle_vx_w, int32_t, H4, TH_MSLE)
+GEN_TH_CMP_VX(th_vmsle_vx_d, int64_t, H8, TH_MSLE)
+
+GEN_TH_CMP_VX(th_vmsgtu_vx_b, uint8_t,  H1, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgtu_vx_h, uint16_t, H2, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgtu_vx_w, uint32_t, H4, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgtu_vx_d, uint64_t, H8, TH_MSGT)
+
+GEN_TH_CMP_VX(th_vmsgt_vx_b, int8_t,  H1, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgt_vx_h, int16_t, H2, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgt_vx_w, int32_t, H4, TH_MSGT)
+GEN_TH_CMP_VX(th_vmsgt_vx_d, int64_t, H8, TH_MSGT)
