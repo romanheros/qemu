@@ -1791,17 +1791,19 @@ GEN_OPIVX_TRANS_TH(th_vssub_vx,  opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vsaddu_vi, IMM_ZX, th_vsaddu_vx, opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vsadd_vi, IMM_SX, th_vsadd_vx, opivx_check_th)
 
+/* Vector Single-Width Averaging Add and Subtract */
+GEN_OPIVV_TRANS_TH(th_vaadd_vv, opivv_check_th)
+GEN_OPIVV_TRANS_TH(th_vasub_vv, opivv_check_th)
+GEN_OPIVX_TRANS_TH(th_vaadd_vx,  opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vasub_vx,  opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vaadd_vi, IMM_SX, th_vaadd_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vaadd_vv)
-TH_TRANS_STUB(th_vaadd_vx)
-TH_TRANS_STUB(th_vaadd_vi)
-TH_TRANS_STUB(th_vasub_vv)
-TH_TRANS_STUB(th_vasub_vx)
 TH_TRANS_STUB(th_vsmul_vv)
 TH_TRANS_STUB(th_vsmul_vx)
 TH_TRANS_STUB(th_vwsmaccu_vv)
