@@ -1837,3 +1837,90 @@ GEN_TH_VX(th_vwmulu_vx_w, 4, 8, clearq_th)
 GEN_TH_VX(th_vwmulsu_vx_b, 1, 2, clearh_th)
 GEN_TH_VX(th_vwmulsu_vx_h, 2, 4, clearl_th)
 GEN_TH_VX(th_vwmulsu_vx_w, 4, 8, clearq_th)
+
+/* Vector Single-Width Integer Multiply-Add Instructions */
+#define TH_OPIVV3(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)   \
+static void do_##NAME(void *vd, void *vs1, void *vs2, int i)       \
+{                                                                  \
+    TX1 s1 = *((T1 *)vs1 + HS1(i));                                \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                \
+    TD d = *((TD *)vd + HD(i));                                    \
+    *((TD *)vd + HD(i)) = OP(s2, s1, d);                           \
+}
+#define TH_MACC(N, M, D) (M * N + D)
+#define TH_NMSAC(N, M, D) (-(M * N) + D)
+#define TH_MADD(N, M, D) (M * D + N)
+#define TH_NMSUB(N, M, D) (-(M * D) + N)
+THCALL(TH_OPIVV3, th_vmacc_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_MACC)
+THCALL(TH_OPIVV3, th_vmacc_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_MACC)
+THCALL(TH_OPIVV3, th_vmacc_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_MACC)
+THCALL(TH_OPIVV3, th_vmacc_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_MACC)
+THCALL(TH_OPIVV3, th_vnmsac_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_NMSAC)
+THCALL(TH_OPIVV3, th_vnmsac_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_NMSAC)
+THCALL(TH_OPIVV3, th_vnmsac_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_NMSAC)
+THCALL(TH_OPIVV3, th_vnmsac_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_NMSAC)
+THCALL(TH_OPIVV3, th_vmadd_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_MADD)
+THCALL(TH_OPIVV3, th_vmadd_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_MADD)
+THCALL(TH_OPIVV3, th_vmadd_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_MADD)
+THCALL(TH_OPIVV3, th_vmadd_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_MADD)
+THCALL(TH_OPIVV3, th_vnmsub_vv_b, TH_OP_SSS_B, H1, H1, H1, TH_NMSUB)
+THCALL(TH_OPIVV3, th_vnmsub_vv_h, TH_OP_SSS_H, H2, H2, H2, TH_NMSUB)
+THCALL(TH_OPIVV3, th_vnmsub_vv_w, TH_OP_SSS_W, H4, H4, H4, TH_NMSUB)
+THCALL(TH_OPIVV3, th_vnmsub_vv_d, TH_OP_SSS_D, H8, H8, H8, TH_NMSUB)
+GEN_TH_VV(th_vmacc_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmacc_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmacc_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmacc_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vnmsac_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vnmsac_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vnmsac_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vnmsac_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vmadd_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vmadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vmadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vmadd_vv_d, 8, 8, clearq_th)
+GEN_TH_VV(th_vnmsub_vv_b, 1, 1, clearb_th)
+GEN_TH_VV(th_vnmsub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV(th_vnmsub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV(th_vnmsub_vv_d, 8, 8, clearq_th)
+
+#define TH_OPIVX3(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)             \
+static void do_##NAME(void *vd, target_long s1, void *vs2, int i)   \
+{                                                                   \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                 \
+    TD d = *((TD *)vd + HD(i));                                     \
+    *((TD *)vd + HD(i)) = OP(s2, (TX1)(T1)s1, d);                   \
+}
+
+THCALL(TH_OPIVX3, th_vmacc_vx_b, TH_OP_SSS_B, H1, H1, TH_MACC)
+THCALL(TH_OPIVX3, th_vmacc_vx_h, TH_OP_SSS_H, H2, H2, TH_MACC)
+THCALL(TH_OPIVX3, th_vmacc_vx_w, TH_OP_SSS_W, H4, H4, TH_MACC)
+THCALL(TH_OPIVX3, th_vmacc_vx_d, TH_OP_SSS_D, H8, H8, TH_MACC)
+THCALL(TH_OPIVX3, th_vnmsac_vx_b, TH_OP_SSS_B, H1, H1, TH_NMSAC)
+THCALL(TH_OPIVX3, th_vnmsac_vx_h, TH_OP_SSS_H, H2, H2, TH_NMSAC)
+THCALL(TH_OPIVX3, th_vnmsac_vx_w, TH_OP_SSS_W, H4, H4, TH_NMSAC)
+THCALL(TH_OPIVX3, th_vnmsac_vx_d, TH_OP_SSS_D, H8, H8, TH_NMSAC)
+THCALL(TH_OPIVX3, th_vmadd_vx_b, TH_OP_SSS_B, H1, H1, TH_MADD)
+THCALL(TH_OPIVX3, th_vmadd_vx_h, TH_OP_SSS_H, H2, H2, TH_MADD)
+THCALL(TH_OPIVX3, th_vmadd_vx_w, TH_OP_SSS_W, H4, H4, TH_MADD)
+THCALL(TH_OPIVX3, th_vmadd_vx_d, TH_OP_SSS_D, H8, H8, TH_MADD)
+THCALL(TH_OPIVX3, th_vnmsub_vx_b, TH_OP_SSS_B, H1, H1, TH_NMSUB)
+THCALL(TH_OPIVX3, th_vnmsub_vx_h, TH_OP_SSS_H, H2, H2, TH_NMSUB)
+THCALL(TH_OPIVX3, th_vnmsub_vx_w, TH_OP_SSS_W, H4, H4, TH_NMSUB)
+THCALL(TH_OPIVX3, th_vnmsub_vx_d, TH_OP_SSS_D, H8, H8, TH_NMSUB)
+GEN_TH_VX(th_vmacc_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmacc_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmacc_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmacc_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vnmsac_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vnmsac_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vnmsac_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vnmsac_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vmadd_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vmadd_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vmadd_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vmadd_vx_d, 8, 8, clearq_th)
+GEN_TH_VX(th_vnmsub_vx_b, 1, 1, clearb_th)
+GEN_TH_VX(th_vnmsub_vx_h, 2, 2, clearh_th)
+GEN_TH_VX(th_vnmsub_vx_w, 4, 4, clearl_th)
+GEN_TH_VX(th_vnmsub_vx_d, 8, 8, clearq_th)
