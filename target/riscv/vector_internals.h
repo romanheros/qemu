@@ -337,4 +337,13 @@ uint16_t fnmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
 uint32_t fnmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
 uint64_t fnmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
 
+uint32_t fwmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s);
+uint64_t fwmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
+uint32_t fwnmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s);
+uint64_t fwnmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
+uint32_t fwmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s);
+uint64_t fwmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
+uint32_t fwnmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s);
+uint64_t fwnmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

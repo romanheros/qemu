@@ -2128,20 +2128,22 @@ GEN_OPFVF_TRANS_TH(th_vfnmadd_vf, opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfmsub_vf, opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfnmsub_vf, opfvf_check_th)
 
+/* Vector Widening Floating-Point Fused Multiply-Add Instructions */
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwmacc_vv, opfvv_widen_check_th)
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwnmacc_vv, opfvv_widen_check_th)
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwmsac_vv, opfvv_widen_check_th)
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwnmsac_vv, opfvv_widen_check_th)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwmacc_vf)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwnmacc_vf)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwmsac_vf)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwnmsac_vf)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfwmacc_vv)
-TH_TRANS_STUB(th_vfwmacc_vf)
-TH_TRANS_STUB(th_vfwnmacc_vv)
-TH_TRANS_STUB(th_vfwnmacc_vf)
-TH_TRANS_STUB(th_vfwmsac_vv)
-TH_TRANS_STUB(th_vfwmsac_vf)
-TH_TRANS_STUB(th_vfwnmsac_vv)
-TH_TRANS_STUB(th_vfwnmsac_vf)
 TH_TRANS_STUB(th_vfsqrt_v)
 TH_TRANS_STUB(th_vfmin_vv)
 TH_TRANS_STUB(th_vfmin_vf)

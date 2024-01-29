@@ -3319,13 +3319,13 @@ GEN_VEXT_VF(vfnmsub_vf_w, 4)
 GEN_VEXT_VF(vfnmsub_vf_d, 8)
 
 /* Vector Widening Floating-Point Fused Multiply-Add Instructions */
-static uint32_t fwmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
+uint32_t fwmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
                           float16_to_float32(b, true, s), d, 0, s);
 }
 
-static uint64_t fwmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
+uint64_t fwmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
                           float32_to_float64(b, s), d, 0, s);
@@ -3351,7 +3351,7 @@ GEN_VEXT_VV_ENV(vfwmaccbf16_vv, 4)
 RVVCALL(OPFVF3, vfwmaccbf16_vf, WOP_UUU_H, H4, H2, fwmaccbf16)
 GEN_VEXT_VF(vfwmaccbf16_vf, 4)
 
-static uint32_t fwnmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
+uint32_t fwnmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
                           float16_to_float32(b, true, s), d,
@@ -3359,7 +3359,7 @@ static uint32_t fwnmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
                           s);
 }
 
-static uint64_t fwnmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
+uint64_t fwnmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s), float32_to_float64(b, s),
                           d, float_muladd_negate_c |
@@ -3375,14 +3375,14 @@ RVVCALL(OPFVF3, vfwnmacc_vf_w, WOP_UUU_W, H8, H4, fwnmacc32)
 GEN_VEXT_VF(vfwnmacc_vf_h, 4)
 GEN_VEXT_VF(vfwnmacc_vf_w, 8)
 
-static uint32_t fwmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
+uint32_t fwmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
                           float16_to_float32(b, true, s), d,
                           float_muladd_negate_c, s);
 }
 
-static uint64_t fwmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
+uint64_t fwmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
                           float32_to_float64(b, s), d,
@@ -3398,14 +3398,14 @@ RVVCALL(OPFVF3, vfwmsac_vf_w, WOP_UUU_W, H8, H4, fwmsac32)
 GEN_VEXT_VF(vfwmsac_vf_h, 4)
 GEN_VEXT_VF(vfwmsac_vf_w, 8)
 
-static uint32_t fwnmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
+uint32_t fwnmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
                           float16_to_float32(b, true, s), d,
                           float_muladd_negate_product, s);
 }
 
-static uint64_t fwnmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
+uint64_t fwnmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
                           float32_to_float64(b, s), d,
