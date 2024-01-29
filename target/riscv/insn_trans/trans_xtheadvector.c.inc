@@ -2186,16 +2186,18 @@ static bool trans_##NAME(DisasContext *s, arg_rmr *a)              \
 
 GEN_OPFV_TRANS_TH(th_vfsqrt_v, opfv_check_th)
 
+/* Vector Floating-Point MIN/MAX Instructions */
+GEN_OPFVV_TRANS_TH(th_vfmin_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfmax_vv, opfvv_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmin_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmax_vf, opfvf_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfmin_vv)
-TH_TRANS_STUB(th_vfmin_vf)
-TH_TRANS_STUB(th_vfmax_vv)
-TH_TRANS_STUB(th_vfmax_vf)
 TH_TRANS_STUB(th_vfsgnj_vv)
 TH_TRANS_STUB(th_vfsgnj_vf)
 TH_TRANS_STUB(th_vfsgnjn_vv)
