@@ -296,4 +296,13 @@ uint16_t float16_rsub(uint16_t a, uint16_t b, float_status *s);
 uint32_t float32_rsub(uint32_t a, uint32_t b, float_status *s);
 uint64_t float64_rsub(uint64_t a, uint64_t b, float_status *s);
 
+uint32_t vfwadd16(uint16_t a, uint16_t b, float_status *s);
+uint64_t vfwadd32(uint32_t a, uint32_t b, float_status *s);
+uint32_t vfwsub16(uint16_t a, uint16_t b, float_status *s);
+uint64_t vfwsub32(uint32_t a, uint32_t b, float_status *s);
+uint32_t vfwaddw16(uint32_t a, uint16_t b, float_status *s);
+uint64_t vfwaddw32(uint64_t a, uint32_t b, float_status *s);
+uint32_t vfwsubw16(uint32_t a, uint16_t b, float_status *s);
+uint64_t vfwsubw32(uint64_t a, uint32_t b, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

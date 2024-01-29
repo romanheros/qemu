@@ -2914,13 +2914,13 @@ GEN_VEXT_VF(vfrsub_vf_w, 4)
 GEN_VEXT_VF(vfrsub_vf_d, 8)
 
 /* Vector Widening Floating-Point Add/Subtract Instructions */
-static uint32_t vfwadd16(uint16_t a, uint16_t b, float_status *s)
+uint32_t vfwadd16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_add(float16_to_float32(a, true, s),
                        float16_to_float32(b, true, s), s);
 }
 
-static uint64_t vfwadd32(uint32_t a, uint32_t b, float_status *s)
+uint64_t vfwadd32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_add(float32_to_float64(a, s),
                        float32_to_float64(b, s), s);
@@ -2936,13 +2936,13 @@ RVVCALL(OPFVF2, vfwadd_vf_w, WOP_UUU_W, H8, H4, vfwadd32)
 GEN_VEXT_VF(vfwadd_vf_h, 4)
 GEN_VEXT_VF(vfwadd_vf_w, 8)
 
-static uint32_t vfwsub16(uint16_t a, uint16_t b, float_status *s)
+uint32_t vfwsub16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_sub(float16_to_float32(a, true, s),
                        float16_to_float32(b, true, s), s);
 }
 
-static uint64_t vfwsub32(uint32_t a, uint32_t b, float_status *s)
+uint64_t vfwsub32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_sub(float32_to_float64(a, s),
                        float32_to_float64(b, s), s);
@@ -2958,12 +2958,12 @@ RVVCALL(OPFVF2, vfwsub_vf_w, WOP_UUU_W, H8, H4, vfwsub32)
 GEN_VEXT_VF(vfwsub_vf_h, 4)
 GEN_VEXT_VF(vfwsub_vf_w, 8)
 
-static uint32_t vfwaddw16(uint32_t a, uint16_t b, float_status *s)
+uint32_t vfwaddw16(uint32_t a, uint16_t b, float_status *s)
 {
     return float32_add(a, float16_to_float32(b, true, s), s);
 }
 
-static uint64_t vfwaddw32(uint64_t a, uint32_t b, float_status *s)
+uint64_t vfwaddw32(uint64_t a, uint32_t b, float_status *s)
 {
     return float64_add(a, float32_to_float64(b, s), s);
 }
@@ -2977,12 +2977,12 @@ RVVCALL(OPFVF2, vfwadd_wf_w, WOP_WUUU_W, H8, H4, vfwaddw32)
 GEN_VEXT_VF(vfwadd_wf_h, 4)
 GEN_VEXT_VF(vfwadd_wf_w, 8)
 
-static uint32_t vfwsubw16(uint32_t a, uint16_t b, float_status *s)
+uint32_t vfwsubw16(uint32_t a, uint16_t b, float_status *s)
 {
     return float32_sub(a, float16_to_float32(b, true, s), s);
 }
 
-static uint64_t vfwsubw32(uint64_t a, uint32_t b, float_status *s)
+uint64_t vfwsubw32(uint64_t a, uint32_t b, float_status *s)
 {
     return float64_sub(a, float32_to_float64(b, s), s);
 }

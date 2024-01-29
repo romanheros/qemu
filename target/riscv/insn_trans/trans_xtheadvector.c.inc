@@ -1939,20 +1939,172 @@ GEN_OPFVF_TRANS_TH(th_vfadd_vf,  opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfsub_vf,  opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfrsub_vf,  opfvf_check_th)
 
+/* Vector Widening Floating-Point Add/Subtract Instructions */
+static bool opfvv_widen_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs2,
+                                     1 << s->lmul) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs1,
+                                     1 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3) && (s->sew != 0));
+}
+
+/* OPFVV with WIDEN */
+#define GEN_OPFVV_WIDEN_TRANS_TH(NAME, CHECK)                       \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)              \
+{                                                                   \
+    if (CHECK(s, a)) {                                              \
+        uint32_t data = 0;                                          \
+        static gen_helper_gvec_4_ptr * const fns[2] = {             \
+            gen_helper_##NAME##_h, gen_helper_##NAME##_w,           \
+        };                                                          \
+        TCGLabel *over = gen_new_label();                           \
+        gen_set_rm(s, RISCV_FRM_DYN);                               \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);  \
+                                                                    \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);           \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);               \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);           \
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, 0),\
+                           th_vreg_ofs(s, a->rs1),                  \
+                           th_vreg_ofs(s, a->rs2), tcg_env,         \
+                           s->cfg_ptr->vlen / 8,                    \
+                           s->cfg_ptr->vlen / 8, data,              \
+                           fns[s->sew - 1]);                        \
+        mark_vs_dirty(s);                                           \
+        gen_set_label(over);                                        \
+        return true;                                                \
+    }                                                               \
+    return false;                                                   \
+}
+
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwadd_vv, opfvv_widen_check_th)
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwsub_vv, opfvv_widen_check_th)
+
+static bool opfvf_widen_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs2,
+                                     1 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3) && (s->sew != 0));
+}
+
+/* OPFVF with WIDEN */
+#define GEN_OPFVF_WIDEN_TRANS_TH(NAME)                           \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)           \
+{                                                                \
+    if (opfvf_widen_check_th(s, a)) {                            \
+        uint32_t data = 0;                                       \
+        static gen_helper_opfvf *const fns[2] = {                \
+            gen_helper_##NAME##_h, gen_helper_##NAME##_w,        \
+        };                                                       \
+        gen_set_rm(s, RISCV_FRM_DYN);                            \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);        \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);            \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);        \
+        return opfvf_trans_th(a->rd, a->rs1, a->rs2, data,       \
+                              fns[s->sew - 1], s);               \
+    }                                                            \
+    return false;                                                \
+}
+
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwadd_vf)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwsub_vf)
+
+static bool opfwv_widen_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, true) &&
+            th_check_reg(s, a->rs1, false) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs1,
+                                     1 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3) && (s->sew != 0));
+}
+
+/* WIDEN OPFVV with WIDEN */
+#define GEN_OPFWV_WIDEN_TRANS_TH(NAME)                             \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    if (opfwv_widen_check_th(s, a)) {                              \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_4_ptr * const fns[2] = {            \
+            gen_helper_##NAME##_h, gen_helper_##NAME##_w,          \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        gen_set_rm(s, RISCV_FRM_DYN);                              \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs1),                 \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew - 1]);                       \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+
+GEN_OPFWV_WIDEN_TRANS_TH(th_vfwadd_wv)
+GEN_OPFWV_WIDEN_TRANS_TH(th_vfwsub_wv)
+
+static bool opfwf_widen_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, true) &&
+            (s->lmul < 0x3) && (s->sew < 0x3) && (s->sew != 0));
+}
+
+/* WIDEN OPFVF with WIDEN */
+#define GEN_OPFWF_WIDEN_TRANS_TH(NAME)                           \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)           \
+{                                                                \
+    if (opfwf_widen_check_th(s, a)) {                            \
+        uint32_t data = 0;                                       \
+        static gen_helper_opfvf *const fns[2] = {                \
+            gen_helper_##NAME##_h, gen_helper_##NAME##_w,        \
+        };                                                       \
+        gen_set_rm(s, RISCV_FRM_DYN);                            \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);        \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);            \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);        \
+        return opfvf_trans_th(a->rd, a->rs1, a->rs2, data,       \
+                              fns[s->sew - 1], s);               \
+    }                                                            \
+    return false;                                                \
+}
+
+GEN_OPFWF_WIDEN_TRANS_TH(th_vfwadd_wf)
+GEN_OPFWF_WIDEN_TRANS_TH(th_vfwsub_wf)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfwadd_vv)
-TH_TRANS_STUB(th_vfwadd_vf)
-TH_TRANS_STUB(th_vfwadd_wv)
-TH_TRANS_STUB(th_vfwadd_wf)
-TH_TRANS_STUB(th_vfwsub_vv)
-TH_TRANS_STUB(th_vfwsub_vf)
-TH_TRANS_STUB(th_vfwsub_wv)
-TH_TRANS_STUB(th_vfwsub_wf)
 TH_TRANS_STUB(th_vfmul_vv)
 TH_TRANS_STUB(th_vfmul_vf)
 TH_TRANS_STUB(th_vfdiv_vv)

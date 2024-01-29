@@ -2808,3 +2808,53 @@ THCALL(TH_OPFVF2, th_vfrsub_vf_d, TH_OP_UUU_D, H8, H8, th_float64_rsub)
 GEN_TH_VF(th_vfrsub_vf_h, 2, 2, clearh_th)
 GEN_TH_VF(th_vfrsub_vf_w, 4, 4, clearl_th)
 GEN_TH_VF(th_vfrsub_vf_d, 8, 8, clearq_th)
+
+/* Vector Widening Floating-Point Add/Subtract Instructions */
+
+GEN_TH_F2ARG_FUNC(vfwadd16, uint16_t, uint16_t, uint32_t)
+GEN_TH_F2ARG_FUNC(vfwadd32, uint32_t, uint32_t, uint64_t)
+
+THCALL(TH_OPFVV2, th_vfwadd_vv_h, TH_WOP_UUU_H, H4, H2, H2, th_vfwadd16)
+THCALL(TH_OPFVV2, th_vfwadd_vv_w, TH_WOP_UUU_W, H8, H4, H4, th_vfwadd32)
+GEN_TH_VV_ENV(th_vfwadd_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfwadd_vv_w, 4, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfwadd_vf_h, TH_WOP_UUU_H, H4, H2, th_vfwadd16)
+THCALL(TH_OPFVF2, th_vfwadd_vf_w, TH_WOP_UUU_W, H8, H4, th_vfwadd32)
+GEN_TH_VF(th_vfwadd_vf_h, 2, 4, clearl_th)
+GEN_TH_VF(th_vfwadd_vf_w, 4, 8, clearq_th)
+
+GEN_TH_F2ARG_FUNC(vfwsub16, uint16_t, uint16_t, uint32_t)
+GEN_TH_F2ARG_FUNC(vfwsub32, uint32_t, uint32_t, uint64_t)
+
+THCALL(TH_OPFVV2, th_vfwsub_vv_h, TH_WOP_UUU_H, H4, H2, H2, th_vfwsub16)
+THCALL(TH_OPFVV2, th_vfwsub_vv_w, TH_WOP_UUU_W, H8, H4, H4, th_vfwsub32)
+GEN_TH_VV_ENV(th_vfwsub_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfwsub_vv_w, 4, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfwsub_vf_h, TH_WOP_UUU_H, H4, H2, th_vfwsub16)
+THCALL(TH_OPFVF2, th_vfwsub_vf_w, TH_WOP_UUU_W, H8, H4, th_vfwsub32)
+GEN_TH_VF(th_vfwsub_vf_h, 2, 4, clearl_th)
+GEN_TH_VF(th_vfwsub_vf_w, 4, 8, clearq_th)
+
+GEN_TH_F2ARG_FUNC(vfwaddw16, uint32_t, uint16_t, uint32_t)
+GEN_TH_F2ARG_FUNC(vfwaddw32, uint64_t, uint32_t, uint64_t)
+
+THCALL(TH_OPFVV2, th_vfwadd_wv_h, TH_WOP_WUUU_H, H4, H2, H2, th_vfwaddw16)
+THCALL(TH_OPFVV2, th_vfwadd_wv_w, TH_WOP_WUUU_W, H8, H4, H4, th_vfwaddw32)
+GEN_TH_VV_ENV(th_vfwadd_wv_h, 2, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfwadd_wv_w, 4, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfwadd_wf_h, TH_WOP_WUUU_H, H4, H2, th_vfwaddw16)
+THCALL(TH_OPFVF2, th_vfwadd_wf_w, TH_WOP_WUUU_W, H8, H4, th_vfwaddw32)
+GEN_TH_VF(th_vfwadd_wf_h, 2, 4, clearl_th)
+GEN_TH_VF(th_vfwadd_wf_w, 4, 8, clearq_th)
+
+GEN_TH_F2ARG_FUNC(vfwsubw16, uint32_t, uint16_t, uint32_t)
+GEN_TH_F2ARG_FUNC(vfwsubw32, uint64_t, uint32_t, uint64_t)
+
+THCALL(TH_OPFVV2, th_vfwsub_wv_h, TH_WOP_WUUU_H, H4, H2, H2, th_vfwsubw16)
+THCALL(TH_OPFVV2, th_vfwsub_wv_w, TH_WOP_WUUU_W, H8, H4, H4, th_vfwsubw32)
+GEN_TH_VV_ENV(th_vfwsub_wv_h, 2, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfwsub_wv_w, 4, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfwsub_wf_h, TH_WOP_WUUU_H, H4, H2, th_vfwsubw16)
+THCALL(TH_OPFVF2, th_vfwsub_wf_w, TH_WOP_WUUU_W, H8, H4, th_vfwsubw32)
+GEN_TH_VF(th_vfwsub_wf_h, 2, 4, clearl_th)
+GEN_TH_VF(th_vfwsub_wf_w, 4, 8, clearq_th)
