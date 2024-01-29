@@ -3867,17 +3867,17 @@ GEN_VEXT_VF(vfmax_vf_w, 4)
 GEN_VEXT_VF(vfmax_vf_d, 8)
 
 /* Vector Floating-Point Sign-Injection Instructions */
-static uint16_t fsgnj16(uint16_t a, uint16_t b, float_status *s)
+uint16_t fsgnj16(uint16_t a, uint16_t b, float_status *s)
 {
     return deposit64(b, 0, 15, a);
 }
 
-static uint32_t fsgnj32(uint32_t a, uint32_t b, float_status *s)
+uint32_t fsgnj32(uint32_t a, uint32_t b, float_status *s)
 {
     return deposit64(b, 0, 31, a);
 }
 
-static uint64_t fsgnj64(uint64_t a, uint64_t b, float_status *s)
+uint64_t fsgnj64(uint64_t a, uint64_t b, float_status *s)
 {
     return deposit64(b, 0, 63, a);
 }
@@ -3895,17 +3895,17 @@ GEN_VEXT_VF(vfsgnj_vf_h, 2)
 GEN_VEXT_VF(vfsgnj_vf_w, 4)
 GEN_VEXT_VF(vfsgnj_vf_d, 8)
 
-static uint16_t fsgnjn16(uint16_t a, uint16_t b, float_status *s)
+uint16_t fsgnjn16(uint16_t a, uint16_t b, float_status *s)
 {
     return deposit64(~b, 0, 15, a);
 }
 
-static uint32_t fsgnjn32(uint32_t a, uint32_t b, float_status *s)
+uint32_t fsgnjn32(uint32_t a, uint32_t b, float_status *s)
 {
     return deposit64(~b, 0, 31, a);
 }
 
-static uint64_t fsgnjn64(uint64_t a, uint64_t b, float_status *s)
+uint64_t fsgnjn64(uint64_t a, uint64_t b, float_status *s)
 {
     return deposit64(~b, 0, 63, a);
 }
@@ -3923,17 +3923,17 @@ GEN_VEXT_VF(vfsgnjn_vf_h, 2)
 GEN_VEXT_VF(vfsgnjn_vf_w, 4)
 GEN_VEXT_VF(vfsgnjn_vf_d, 8)
 
-static uint16_t fsgnjx16(uint16_t a, uint16_t b, float_status *s)
+uint16_t fsgnjx16(uint16_t a, uint16_t b, float_status *s)
 {
     return deposit64(b ^ a, 0, 15, a);
 }
 
-static uint32_t fsgnjx32(uint32_t a, uint32_t b, float_status *s)
+uint32_t fsgnjx32(uint32_t a, uint32_t b, float_status *s)
 {
     return deposit64(b ^ a, 0, 31, a);
 }
 
-static uint64_t fsgnjx64(uint64_t a, uint64_t b, float_status *s)
+uint64_t fsgnjx64(uint64_t a, uint64_t b, float_status *s)
 {
     return deposit64(b ^ a, 0, 63, a);
 }

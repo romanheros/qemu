@@ -346,4 +346,14 @@ uint64_t fwmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
 uint32_t fwnmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s);
 uint64_t fwnmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s);
 
+uint16_t fsgnj16(uint16_t a, uint16_t b, float_status *s);
+uint32_t fsgnj32(uint32_t a, uint32_t b, float_status *s);
+uint64_t fsgnj64(uint64_t a, uint64_t b, float_status *s);
+uint16_t fsgnjn16(uint16_t a, uint16_t b, float_status *s);
+uint32_t fsgnjn32(uint32_t a, uint32_t b, float_status *s);
+uint64_t fsgnjn64(uint64_t a, uint64_t b, float_status *s);
+uint16_t fsgnjx16(uint16_t a, uint16_t b, float_status *s);
+uint32_t fsgnjx32(uint32_t a, uint32_t b, float_status *s);
+uint64_t fsgnjx64(uint64_t a, uint64_t b, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

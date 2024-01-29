@@ -2192,18 +2192,20 @@ GEN_OPFVV_TRANS_TH(th_vfmax_vv, opfvv_check_th)
 GEN_OPFVF_TRANS_TH(th_vfmin_vf, opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfmax_vf, opfvf_check_th)
 
+/* Vector Floating-Point Sign-Injection Instructions */
+GEN_OPFVV_TRANS_TH(th_vfsgnj_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfsgnjn_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfsgnjx_vv, opfvv_check_th)
+GEN_OPFVF_TRANS_TH(th_vfsgnj_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfsgnjn_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfsgnjx_vf, opfvf_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfsgnj_vv)
-TH_TRANS_STUB(th_vfsgnj_vf)
-TH_TRANS_STUB(th_vfsgnjn_vv)
-TH_TRANS_STUB(th_vfsgnjn_vf)
-TH_TRANS_STUB(th_vfsgnjx_vv)
-TH_TRANS_STUB(th_vfsgnjx_vf)
 TH_TRANS_STUB(th_vmfeq_vv)
 TH_TRANS_STUB(th_vmfeq_vf)
 TH_TRANS_STUB(th_vmfne_vv)
