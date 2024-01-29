@@ -3046,13 +3046,13 @@ GEN_VEXT_VF(vfrdiv_vf_w, 4)
 GEN_VEXT_VF(vfrdiv_vf_d, 8)
 
 /* Vector Widening Floating-Point Multiply */
-static uint32_t vfwmul16(uint16_t a, uint16_t b, float_status *s)
+uint32_t vfwmul16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_mul(float16_to_float32(a, true, s),
                        float16_to_float32(b, true, s), s);
 }
 
-static uint64_t vfwmul32(uint32_t a, uint32_t b, float_status *s)
+uint64_t vfwmul32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_mul(float32_to_float64(a, s),
                        float32_to_float64(b, s), s);

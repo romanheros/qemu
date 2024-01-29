@@ -2106,14 +2106,16 @@ GEN_OPFVF_TRANS_TH(th_vfmul_vf,  opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfdiv_vf,  opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfrdiv_vf,  opfvf_check_th)
 
+/* Vector Widening Floating-Point Multiply */
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwmul_vv, opfvv_widen_check_th)
+GEN_OPFVF_WIDEN_TRANS_TH(th_vfwmul_vf)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfwmul_vv)
-TH_TRANS_STUB(th_vfwmul_vf)
 TH_TRANS_STUB(th_vfmacc_vv)
 TH_TRANS_STUB(th_vfnmacc_vv)
 TH_TRANS_STUB(th_vfnmacc_vf)

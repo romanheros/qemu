@@ -2896,3 +2896,16 @@ THCALL(TH_OPFVF2, th_vfrdiv_vf_d, TH_OP_UUU_D, H8, H8, th_float64_rdiv)
 GEN_TH_VF(th_vfrdiv_vf_h, 2, 2, clearh_th)
 GEN_TH_VF(th_vfrdiv_vf_w, 4, 4, clearl_th)
 GEN_TH_VF(th_vfrdiv_vf_d, 8, 8, clearq_th)
+
+/* Vector Widening Floating-Point Multiply */
+GEN_TH_F2ARG_FUNC(vfwmul16, uint16_t, uint16_t, uint32_t)
+GEN_TH_F2ARG_FUNC(vfwmul32, uint32_t, uint32_t, uint64_t)
+
+THCALL(TH_OPFVV2, th_vfwmul_vv_h, TH_WOP_UUU_H, H4, H2, H2, th_vfwmul16)
+THCALL(TH_OPFVV2, th_vfwmul_vv_w, TH_WOP_UUU_W, H8, H4, H4, th_vfwmul32)
+GEN_TH_VV_ENV(th_vfwmul_vv_h, 2, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfwmul_vv_w, 4, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfwmul_vf_h, TH_WOP_UUU_H, H4, H2, th_vfwmul16)
+THCALL(TH_OPFVF2, th_vfwmul_vf_w, TH_WOP_UUU_W, H8, H4, th_vfwmul32)
+GEN_TH_VF(th_vfwmul_vf_h, 2, 4, clearl_th)
+GEN_TH_VF(th_vfwmul_vf_w, 4, 8, clearq_th)
