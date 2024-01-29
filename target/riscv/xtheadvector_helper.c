@@ -2909,3 +2909,168 @@ THCALL(TH_OPFVF2, th_vfwmul_vf_h, TH_WOP_UUU_H, H4, H2, th_vfwmul16)
 THCALL(TH_OPFVF2, th_vfwmul_vf_w, TH_WOP_UUU_W, H8, H4, th_vfwmul32)
 GEN_TH_VF(th_vfwmul_vf_h, 2, 4, clearl_th)
 GEN_TH_VF(th_vfwmul_vf_w, 4, 8, clearq_th)
+
+/* Vector Single-Width Floating-Point Fused Multiply-Add Instructions */
+#define TH_OPFVV3(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)    \
+static void do_##NAME(void *vd, void *vs1, void *vs2, int i,       \
+        CPURISCVState *env)                                        \
+{                                                                  \
+    TX1 s1 = *((T1 *)vs1 + HS1(i));                                \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                                \
+    TD d = *((TD *)vd + HD(i));                                    \
+    *((TD *)vd + HD(i)) = OP(s2, s1, d, &env->fp_status);          \
+}
+
+#define GEN_TH_F3ARG_FUNC(NAME, ATYPE, BTYPE, CTYPE, DTYPE)    \
+static DTYPE th_##NAME(ATYPE a, BTYPE b, CTYPE c,              \
+                       float_status *s)                        \
+                                                               \
+{                                                              \
+    return NAME(a, b, c, s);                                   \
+}
+
+GEN_TH_F3ARG_FUNC(fmacc16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fmacc32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fmacc64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfmacc_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fmacc16)
+THCALL(TH_OPFVV3, th_vfmacc_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fmacc32)
+THCALL(TH_OPFVV3, th_vfmacc_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fmacc64)
+GEN_TH_VV_ENV(th_vfmacc_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfmacc_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfmacc_vv_d, 8, 8, clearq_th)
+
+#define TH_OPFVF3(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)        \
+static void do_##NAME(void *vd, uint64_t s1, void *vs2, int i,    \
+        CPURISCVState *env)                                       \
+{                                                                 \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                               \
+    TD d = *((TD *)vd + HD(i));                                   \
+    *((TD *)vd + HD(i)) = OP(s2, (TX1)(T1)s1, d, &env->fp_status);\
+}
+
+THCALL(TH_OPFVF3, th_vfmacc_vf_h, TH_OP_UUU_H, H2, H2, th_fmacc16)
+THCALL(TH_OPFVF3, th_vfmacc_vf_w, TH_OP_UUU_W, H4, H4, th_fmacc32)
+THCALL(TH_OPFVF3, th_vfmacc_vf_d, TH_OP_UUU_D, H8, H8, th_fmacc64)
+GEN_TH_VF(th_vfmacc_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfmacc_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfmacc_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fnmacc16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fnmacc32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fnmacc64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfnmacc_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fnmacc16)
+THCALL(TH_OPFVV3, th_vfnmacc_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fnmacc32)
+THCALL(TH_OPFVV3, th_vfnmacc_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fnmacc64)
+GEN_TH_VV_ENV(th_vfnmacc_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfnmacc_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfnmacc_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfnmacc_vf_h, TH_OP_UUU_H, H2, H2, th_fnmacc16)
+THCALL(TH_OPFVF3, th_vfnmacc_vf_w, TH_OP_UUU_W, H4, H4, th_fnmacc32)
+THCALL(TH_OPFVF3, th_vfnmacc_vf_d, TH_OP_UUU_D, H8, H8, th_fnmacc64)
+GEN_TH_VF(th_vfnmacc_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfnmacc_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfnmacc_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fmsac16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fmsac32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fmsac64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfmsac_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fmsac16)
+THCALL(TH_OPFVV3, th_vfmsac_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fmsac32)
+THCALL(TH_OPFVV3, th_vfmsac_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fmsac64)
+GEN_TH_VV_ENV(th_vfmsac_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfmsac_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfmsac_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfmsac_vf_h, TH_OP_UUU_H, H2, H2, th_fmsac16)
+THCALL(TH_OPFVF3, th_vfmsac_vf_w, TH_OP_UUU_W, H4, H4, th_fmsac32)
+THCALL(TH_OPFVF3, th_vfmsac_vf_d, TH_OP_UUU_D, H8, H8, th_fmsac64)
+GEN_TH_VF(th_vfmsac_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfmsac_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfmsac_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fnmsac16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fnmsac32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fnmsac64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfnmsac_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fnmsac16)
+THCALL(TH_OPFVV3, th_vfnmsac_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fnmsac32)
+THCALL(TH_OPFVV3, th_vfnmsac_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fnmsac64)
+GEN_TH_VV_ENV(th_vfnmsac_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfnmsac_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfnmsac_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfnmsac_vf_h, TH_OP_UUU_H, H2, H2, th_fnmsac16)
+THCALL(TH_OPFVF3, th_vfnmsac_vf_w, TH_OP_UUU_W, H4, H4, th_fnmsac32)
+THCALL(TH_OPFVF3, th_vfnmsac_vf_d, TH_OP_UUU_D, H8, H8, th_fnmsac64)
+GEN_TH_VF(th_vfnmsac_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfnmsac_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfnmsac_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fmadd16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fmadd32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fmadd64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfmadd_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fmadd16)
+THCALL(TH_OPFVV3, th_vfmadd_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fmadd32)
+THCALL(TH_OPFVV3, th_vfmadd_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fmadd64)
+GEN_TH_VV_ENV(th_vfmadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfmadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfmadd_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfmadd_vf_h, TH_OP_UUU_H, H2, H2, th_fmadd16)
+THCALL(TH_OPFVF3, th_vfmadd_vf_w, TH_OP_UUU_W, H4, H4, th_fmadd32)
+THCALL(TH_OPFVF3, th_vfmadd_vf_d, TH_OP_UUU_D, H8, H8, th_fmadd64)
+GEN_TH_VF(th_vfmadd_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfmadd_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfmadd_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fnmadd16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fnmadd32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fnmadd64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfnmadd_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fnmadd16)
+THCALL(TH_OPFVV3, th_vfnmadd_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fnmadd32)
+THCALL(TH_OPFVV3, th_vfnmadd_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fnmadd64)
+GEN_TH_VV_ENV(th_vfnmadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfnmadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfnmadd_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfnmadd_vf_h, TH_OP_UUU_H, H2, H2, th_fnmadd16)
+THCALL(TH_OPFVF3, th_vfnmadd_vf_w, TH_OP_UUU_W, H4, H4, th_fnmadd32)
+THCALL(TH_OPFVF3, th_vfnmadd_vf_d, TH_OP_UUU_D, H8, H8, th_fnmadd64)
+GEN_TH_VF(th_vfnmadd_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfnmadd_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfnmadd_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fmsub16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fmsub32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fmsub64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfmsub_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fmsub16)
+THCALL(TH_OPFVV3, th_vfmsub_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fmsub32)
+THCALL(TH_OPFVV3, th_vfmsub_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fmsub64)
+GEN_TH_VV_ENV(th_vfmsub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfmsub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfmsub_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfmsub_vf_h, TH_OP_UUU_H, H2, H2, th_fmsub16)
+THCALL(TH_OPFVF3, th_vfmsub_vf_w, TH_OP_UUU_W, H4, H4, th_fmsub32)
+THCALL(TH_OPFVF3, th_vfmsub_vf_d, TH_OP_UUU_D, H8, H8, th_fmsub64)
+GEN_TH_VF(th_vfmsub_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfmsub_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfmsub_vf_d, 8, 8, clearq_th)
+
+GEN_TH_F3ARG_FUNC(fnmsub16, uint16_t, uint16_t, uint16_t, uint16_t)
+GEN_TH_F3ARG_FUNC(fnmsub32, uint32_t, uint32_t, uint32_t, uint32_t)
+GEN_TH_F3ARG_FUNC(fnmsub64, uint64_t, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVV3, th_vfnmsub_vv_h, TH_OP_UUU_H, H2, H2, H2, th_fnmsub16)
+THCALL(TH_OPFVV3, th_vfnmsub_vv_w, TH_OP_UUU_W, H4, H4, H4, th_fnmsub32)
+THCALL(TH_OPFVV3, th_vfnmsub_vv_d, TH_OP_UUU_D, H8, H8, H8, th_fnmsub64)
+GEN_TH_VV_ENV(th_vfnmsub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfnmsub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfnmsub_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF3, th_vfnmsub_vf_h, TH_OP_UUU_H, H2, H2, th_fnmsub16)
+THCALL(TH_OPFVF3, th_vfnmsub_vf_w, TH_OP_UUU_W, H4, H4, th_fnmsub32)
+THCALL(TH_OPFVF3, th_vfnmsub_vf_d, TH_OP_UUU_D, H8, H8, th_fnmsub64)
+GEN_TH_VF(th_vfnmsub_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfnmsub_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfnmsub_vf_d, 8, 8, clearq_th)

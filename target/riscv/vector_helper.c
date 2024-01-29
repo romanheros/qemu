@@ -3078,17 +3078,17 @@ static void do_##NAME(void *vd, void *vs1, void *vs2, int i,       \
     *((TD *)vd + HD(i)) = OP(s2, s1, d, &env->fp_status);          \
 }
 
-static uint16_t fmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(a, b, d, 0, s);
 }
 
-static uint32_t fmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(a, b, d, 0, s);
 }
 
-static uint64_t fmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(a, b, d, 0, s);
 }
@@ -3116,19 +3116,19 @@ GEN_VEXT_VF(vfmacc_vf_h, 2)
 GEN_VEXT_VF(vfmacc_vf_w, 4)
 GEN_VEXT_VF(vfmacc_vf_d, 8)
 
-static uint16_t fnmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fnmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(a, b, d, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
 }
 
-static uint32_t fnmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fnmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(a, b, d, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
 }
 
-static uint64_t fnmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fnmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(a, b, d, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
@@ -3147,17 +3147,17 @@ GEN_VEXT_VF(vfnmacc_vf_h, 2)
 GEN_VEXT_VF(vfnmacc_vf_w, 4)
 GEN_VEXT_VF(vfnmacc_vf_d, 8)
 
-static uint16_t fmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(a, b, d, float_muladd_negate_c, s);
 }
 
-static uint32_t fmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(a, b, d, float_muladd_negate_c, s);
 }
 
-static uint64_t fmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(a, b, d, float_muladd_negate_c, s);
 }
@@ -3175,17 +3175,17 @@ GEN_VEXT_VF(vfmsac_vf_h, 2)
 GEN_VEXT_VF(vfmsac_vf_w, 4)
 GEN_VEXT_VF(vfmsac_vf_d, 8)
 
-static uint16_t fnmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fnmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(a, b, d, float_muladd_negate_product, s);
 }
 
-static uint32_t fnmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fnmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(a, b, d, float_muladd_negate_product, s);
 }
 
-static uint64_t fnmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fnmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(a, b, d, float_muladd_negate_product, s);
 }
@@ -3203,17 +3203,17 @@ GEN_VEXT_VF(vfnmsac_vf_h, 2)
 GEN_VEXT_VF(vfnmsac_vf_w, 4)
 GEN_VEXT_VF(vfnmsac_vf_d, 8)
 
-static uint16_t fmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(d, b, a, 0, s);
 }
 
-static uint32_t fmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(d, b, a, 0, s);
 }
 
-static uint64_t fmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(d, b, a, 0, s);
 }
@@ -3231,19 +3231,19 @@ GEN_VEXT_VF(vfmadd_vf_h, 2)
 GEN_VEXT_VF(vfmadd_vf_w, 4)
 GEN_VEXT_VF(vfmadd_vf_d, 8)
 
-static uint16_t fnmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fnmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(d, b, a, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
 }
 
-static uint32_t fnmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fnmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(d, b, a, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
 }
 
-static uint64_t fnmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fnmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(d, b, a, float_muladd_negate_c |
                                    float_muladd_negate_product, s);
@@ -3262,17 +3262,17 @@ GEN_VEXT_VF(vfnmadd_vf_h, 2)
 GEN_VEXT_VF(vfnmadd_vf_w, 4)
 GEN_VEXT_VF(vfnmadd_vf_d, 8)
 
-static uint16_t fmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(d, b, a, float_muladd_negate_c, s);
 }
 
-static uint32_t fmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(d, b, a, float_muladd_negate_c, s);
 }
 
-static uint64_t fmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(d, b, a, float_muladd_negate_c, s);
 }
@@ -3290,17 +3290,17 @@ GEN_VEXT_VF(vfmsub_vf_h, 2)
 GEN_VEXT_VF(vfmsub_vf_w, 4)
 GEN_VEXT_VF(vfmsub_vf_d, 8)
 
-static uint16_t fnmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
+uint16_t fnmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
     return float16_muladd(d, b, a, float_muladd_negate_product, s);
 }
 
-static uint32_t fnmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
+uint32_t fnmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(d, b, a, float_muladd_negate_product, s);
 }
 
-static uint64_t fnmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
+uint64_t fnmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(d, b, a, float_muladd_negate_product, s);
 }

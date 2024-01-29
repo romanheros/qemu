@@ -2110,28 +2110,30 @@ GEN_OPFVF_TRANS_TH(th_vfrdiv_vf,  opfvf_check_th)
 GEN_OPFVV_WIDEN_TRANS_TH(th_vfwmul_vv, opfvv_widen_check_th)
 GEN_OPFVF_WIDEN_TRANS_TH(th_vfwmul_vf)
 
+/* Vector Single-Width Floating-Point Fused Multiply-Add Instructions */
+GEN_OPFVV_TRANS_TH(th_vfmacc_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfnmacc_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfmsac_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfnmsac_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfmadd_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfnmadd_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfmsub_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfnmsub_vv, opfvv_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmacc_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfnmacc_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmsac_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfnmsac_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmadd_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfnmadd_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmsub_vf, opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfnmsub_vf, opfvf_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfmacc_vv)
-TH_TRANS_STUB(th_vfnmacc_vv)
-TH_TRANS_STUB(th_vfnmacc_vf)
-TH_TRANS_STUB(th_vfmacc_vf)
-TH_TRANS_STUB(th_vfmsac_vv)
-TH_TRANS_STUB(th_vfmsac_vf)
-TH_TRANS_STUB(th_vfnmsac_vv)
-TH_TRANS_STUB(th_vfnmsac_vf)
-TH_TRANS_STUB(th_vfmadd_vv)
-TH_TRANS_STUB(th_vfmadd_vf)
-TH_TRANS_STUB(th_vfnmadd_vv)
-TH_TRANS_STUB(th_vfnmadd_vf)
-TH_TRANS_STUB(th_vfmsub_vv)
-TH_TRANS_STUB(th_vfmsub_vf)
-TH_TRANS_STUB(th_vfnmsub_vv)
-TH_TRANS_STUB(th_vfnmsub_vf)
 TH_TRANS_STUB(th_vfwmacc_vv)
 TH_TRANS_STUB(th_vfwmacc_vf)
 TH_TRANS_STUB(th_vfwnmacc_vv)

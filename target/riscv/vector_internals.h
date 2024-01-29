@@ -312,4 +312,29 @@ uint64_t float64_rdiv(uint64_t a, uint64_t b, float_status *s);
 uint32_t vfwmul16(uint16_t a, uint16_t b, float_status *s);
 uint64_t vfwmul32(uint32_t a, uint32_t b, float_status *s);
 
+uint16_t fmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fnmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fnmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fnmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fnmsac16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fnmsac32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fnmsac64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fnmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fnmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fnmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+uint16_t fnmsub16(uint16_t a, uint16_t b, uint16_t d, float_status *s);
+uint32_t fnmsub32(uint32_t a, uint32_t b, uint32_t d, float_status *s);
+uint64_t fnmsub64(uint64_t a, uint64_t b, uint64_t d, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */
