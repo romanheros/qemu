@@ -2138,13 +2138,60 @@ GEN_OPFVF_WIDEN_TRANS_TH(th_vfwnmacc_vf)
 GEN_OPFVF_WIDEN_TRANS_TH(th_vfwmsac_vf)
 GEN_OPFVF_WIDEN_TRANS_TH(th_vfwnmsac_vf)
 
+/* Vector Floating-Point Square-Root Instruction */
+
+/*
+ * If the current SEW does not correspond to a supported IEEE floating-point
+ * type, an illegal instruction exception is raised
+ */
+static bool opfv_check_th(DisasContext *s, arg_rmr *a)
+{
+    return require_thv(s) &&
+           th_check_isa_ill(s) &&
+           th_check_overlap_mask(s, a->rd, a->vm, false) &&
+           th_check_reg(s, a->rd, false) &&
+           th_check_reg(s, a->rs2, false) &&
+           (s->sew != 0);
+}
+
+#define GEN_OPFV_TRANS_TH(NAME, CHECK)                             \
+static bool trans_##NAME(DisasContext *s, arg_rmr *a)              \
+{                                                                  \
+    if (CHECK(s, a)) {                                             \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_3_ptr * const fns[3] = {            \
+            gen_helper_##NAME##_h,                                 \
+            gen_helper_##NAME##_w,                                 \
+            gen_helper_##NAME##_d,                                 \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        gen_set_rm(s, RISCV_FRM_DYN);                              \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_3_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew - 1]);                       \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+
+GEN_OPFV_TRANS_TH(th_vfsqrt_v, opfv_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfsqrt_v)
 TH_TRANS_STUB(th_vfmin_vv)
 TH_TRANS_STUB(th_vfmin_vf)
 TH_TRANS_STUB(th_vfmax_vv)

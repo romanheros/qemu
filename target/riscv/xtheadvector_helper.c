@@ -3123,3 +3123,47 @@ THCALL(TH_OPFVF3, th_vfwnmsac_vf_h, TH_WOP_UUU_H, H4, H2, th_fwnmsac16)
 THCALL(TH_OPFVF3, th_vfwnmsac_vf_w, TH_WOP_UUU_W, H8, H4, th_fwnmsac32)
 GEN_TH_VF(th_vfwnmsac_vf_h, 2, 4, clearl_th)
 GEN_TH_VF(th_vfwnmsac_vf_w, 4, 8, clearq_th)
+
+/* Vector Floating-Point Square-Root Instruction */
+/* (TD, T2, TX2) */
+#define TH_OP_UU_H uint16_t, uint16_t, uint16_t
+#define TH_OP_UU_W uint32_t, uint32_t, uint32_t
+#define TH_OP_UU_D uint64_t, uint64_t, uint64_t
+
+#define TH_OPFVV1(NAME, TD, T2, TX2, HD, HS2, OP)        \
+static void do_##NAME(void *vd, void *vs2, int i,      \
+        CPURISCVState *env)                            \
+{                                                      \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                    \
+    *((TD *)vd + HD(i)) = OP(s2, &env->fp_status);     \
+}
+
+#define GEN_TH_V_ENV(NAME, ESZ, DSZ, CLEAR_FN)       \
+void HELPER(NAME)(void *vd, void *v0, void *vs2,       \
+        CPURISCVState *env, uint32_t desc)             \
+{                                                      \
+    uint32_t vlmax = th_maxsz(desc) / ESZ;             \
+    uint32_t mlen = th_mlen(desc);                     \
+    uint32_t vm = th_vm(desc);                         \
+    uint32_t vl = env->vl;                             \
+    uint32_t i;                                        \
+                                                       \
+    if (vl == 0) {                                     \
+        return;                                        \
+    }                                                  \
+    for (i = env->vstart; i < vl; i++) {               \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {       \
+            continue;                                  \
+        }                                              \
+        do_##NAME(vd, vs2, i, env);                    \
+    }                                                  \
+    env->vstart = 0;                                   \
+    CLEAR_FN(vd, vl, vl * DSZ,  vlmax * DSZ);          \
+}
+
+THCALL(TH_OPFVV1, th_vfsqrt_v_h, TH_OP_UU_H, H2, H2, float16_sqrt)
+THCALL(TH_OPFVV1, th_vfsqrt_v_w, TH_OP_UU_W, H4, H4, float32_sqrt)
+THCALL(TH_OPFVV1, th_vfsqrt_v_d, TH_OP_UU_D, H8, H8, float64_sqrt)
+GEN_TH_V_ENV(th_vfsqrt_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfsqrt_v_w, 4, 4, clearl_th)
+GEN_TH_V_ENV(th_vfsqrt_v_d, 8, 8, clearq_th)
