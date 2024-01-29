@@ -3023,17 +3023,17 @@ GEN_VEXT_VF(vfdiv_vf_h, 2)
 GEN_VEXT_VF(vfdiv_vf_w, 4)
 GEN_VEXT_VF(vfdiv_vf_d, 8)
 
-static uint16_t float16_rdiv(uint16_t a, uint16_t b, float_status *s)
+uint16_t float16_rdiv(uint16_t a, uint16_t b, float_status *s)
 {
     return float16_div(b, a, s);
 }
 
-static uint32_t float32_rdiv(uint32_t a, uint32_t b, float_status *s)
+uint32_t float32_rdiv(uint32_t a, uint32_t b, float_status *s)
 {
     return float32_div(b, a, s);
 }
 
-static uint64_t float64_rdiv(uint64_t a, uint64_t b, float_status *s)
+uint64_t float64_rdiv(uint64_t a, uint64_t b, float_status *s)
 {
     return float64_div(b, a, s);
 }

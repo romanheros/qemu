@@ -2099,17 +2099,19 @@ static bool trans_##NAME(DisasContext *s, arg_rmrr *a)           \
 GEN_OPFWF_WIDEN_TRANS_TH(th_vfwadd_wf)
 GEN_OPFWF_WIDEN_TRANS_TH(th_vfwsub_wf)
 
+/* Vector Single-Width Floating-Point Multiply/Divide Instructions */
+GEN_OPFVV_TRANS_TH(th_vfmul_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfdiv_vv, opfvv_check_th)
+GEN_OPFVF_TRANS_TH(th_vfmul_vf,  opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfdiv_vf,  opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfrdiv_vf,  opfvf_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfmul_vv)
-TH_TRANS_STUB(th_vfmul_vf)
-TH_TRANS_STUB(th_vfdiv_vv)
-TH_TRANS_STUB(th_vfdiv_vf)
-TH_TRANS_STUB(th_vfrdiv_vf)
 TH_TRANS_STUB(th_vfwmul_vv)
 TH_TRANS_STUB(th_vfwmul_vf)
 TH_TRANS_STUB(th_vfmacc_vv)

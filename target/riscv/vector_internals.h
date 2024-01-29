@@ -305,4 +305,8 @@ uint64_t vfwaddw32(uint64_t a, uint32_t b, float_status *s);
 uint32_t vfwsubw16(uint32_t a, uint16_t b, float_status *s);
 uint64_t vfwsubw32(uint64_t a, uint32_t b, float_status *s);
 
+uint16_t float16_rdiv(uint16_t a, uint16_t b, float_status *s);
+uint32_t float32_rdiv(uint32_t a, uint32_t b, float_status *s);
+uint64_t float64_rdiv(uint64_t a, uint64_t b, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */
