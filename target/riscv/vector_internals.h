@@ -292,4 +292,8 @@ uint8_t vnclipu8(CPURISCVState *env, int vxrm, uint16_t a, uint8_t b);
 uint16_t vnclipu16(CPURISCVState *env, int vxrm, uint32_t a, uint16_t b);
 uint32_t vnclipu32(CPURISCVState *env, int vxrm, uint64_t a, uint32_t b);
 
+uint16_t float16_rsub(uint16_t a, uint16_t b, float_status *s);
+uint32_t float32_rsub(uint32_t a, uint32_t b, float_status *s);
+uint64_t float64_rsub(uint64_t a, uint64_t b, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

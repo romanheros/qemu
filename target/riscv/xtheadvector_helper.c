@@ -2695,3 +2695,116 @@ THCALL(TH_OPIVX2_RM, th_vnclipu_vx_w, TH_NOP_UUU_W, H4, H8, th_vnclipu32)
 GEN_TH_VX_RM(th_vnclipu_vx_b, 1, 1, clearb_th)
 GEN_TH_VX_RM(th_vnclipu_vx_h, 2, 2, clearh_th)
 GEN_TH_VX_RM(th_vnclipu_vx_w, 4, 4, clearl_th)
+
+/*
+ *** Vector Float Point Arithmetic Instructions
+ */
+/* Vector Single-Width Floating-Point Add/Subtract Instructions */
+/*
+ * Some functions or macros are just the same as RVV1.0.
+ * But it is not worthy to extract them from RVV1.0, so we just copy
+ * them.
+ */
+#define TH_OPFVV2(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)\
+static void do_##NAME(void *vd, void *vs1, void *vs2, int i,   \
+                      CPURISCVState *env)                      \
+{                                                              \
+    TX1 s1 = *((T1 *)vs1 + HS1(i));                            \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                            \
+    *((TD *)vd + HD(i)) = OP(s2, s1, &env->fp_status);         \
+}
+
+#define GEN_TH_VV_ENV(NAME, ESZ, DSZ, CLEAR_FN)           \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,          \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
+{                                                         \
+    uint32_t vlmax = th_maxsz(desc) / ESZ;                \
+    uint32_t mlen = th_mlen(desc);                        \
+    uint32_t vm = th_vm(desc);                            \
+    uint32_t vl = env->vl;                                \
+    uint32_t i;                                           \
+                                                          \
+    for (i = env->vstart; i < vl; i++) {                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {          \
+            continue;                                     \
+        }                                                 \
+        do_##NAME(vd, vs1, vs2, i, env);                  \
+    }                                                     \
+    env->vstart = 0;                                      \
+    CLEAR_FN(vd, vl, vl * DSZ,  vlmax * DSZ);             \
+}
+
+THCALL(TH_OPFVV2, th_vfadd_vv_h, TH_OP_UUU_H, H2, H2, H2, float16_add)
+THCALL(TH_OPFVV2, th_vfadd_vv_w, TH_OP_UUU_W, H4, H4, H4, float32_add)
+THCALL(TH_OPFVV2, th_vfadd_vv_d, TH_OP_UUU_D, H8, H8, H8, float64_add)
+GEN_TH_VV_ENV(th_vfadd_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfadd_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfadd_vv_d, 8, 8, clearq_th)
+
+#define TH_OPFVF2(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)     \
+static void do_##NAME(void *vd, uint64_t s1, void *vs2, int i, \
+                      CPURISCVState *env)                      \
+{                                                              \
+    TX2 s2 = *((T2 *)vs2 + HS2(i));                            \
+    *((TD *)vd + HD(i)) = OP(s2, (TX1)(T1)s1, &env->fp_status);\
+}
+
+#define GEN_TH_VF(NAME, ESZ, DSZ, CLEAR_FN)               \
+void HELPER(NAME)(void *vd, void *v0, uint64_t s1,        \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
+{                                                         \
+    uint32_t vlmax = th_maxsz(desc) / ESZ;                \
+    uint32_t mlen = th_mlen(desc);                        \
+    uint32_t vm = th_vm(desc);                            \
+    uint32_t vl = env->vl;                                \
+    uint32_t i;                                           \
+                                                          \
+    for (i = env->vstart; i < vl; i++) {                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {          \
+            continue;                                     \
+        }                                                 \
+        do_##NAME(vd, s1, vs2, i, env);                   \
+    }                                                     \
+    env->vstart = 0;                                      \
+    CLEAR_FN(vd, vl, vl * DSZ,  vlmax * DSZ);             \
+}
+
+THCALL(TH_OPFVF2, th_vfadd_vf_h, TH_OP_UUU_H, H2, H2, float16_add)
+THCALL(TH_OPFVF2, th_vfadd_vf_w, TH_OP_UUU_W, H4, H4, float32_add)
+THCALL(TH_OPFVF2, th_vfadd_vf_d, TH_OP_UUU_D, H8, H8, float64_add)
+GEN_TH_VF(th_vfadd_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfadd_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfadd_vf_d, 8, 8, clearq_th)
+
+THCALL(TH_OPFVV2, th_vfsub_vv_h, TH_OP_UUU_H, H2, H2, H2, float16_sub)
+THCALL(TH_OPFVV2, th_vfsub_vv_w, TH_OP_UUU_W, H4, H4, H4, float32_sub)
+THCALL(TH_OPFVV2, th_vfsub_vv_d, TH_OP_UUU_D, H8, H8, H8, float64_sub)
+GEN_TH_VV_ENV(th_vfsub_vv_h, 2, 2, clearh_th)
+GEN_TH_VV_ENV(th_vfsub_vv_w, 4, 4, clearl_th)
+GEN_TH_VV_ENV(th_vfsub_vv_d, 8, 8, clearq_th)
+THCALL(TH_OPFVF2, th_vfsub_vf_h, TH_OP_UUU_H, H2, H2, float16_sub)
+THCALL(TH_OPFVF2, th_vfsub_vf_w, TH_OP_UUU_W, H4, H4, float32_sub)
+THCALL(TH_OPFVF2, th_vfsub_vf_d, TH_OP_UUU_D, H8, H8, float64_sub)
+GEN_TH_VF(th_vfsub_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfsub_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfsub_vf_d, 8, 8, clearq_th)
+
+#define GEN_TH_F2ARG_FUNC(NAME, ATYPE, BTYPE, DTYPE)     \
+static DTYPE th_##NAME(ATYPE a, BTYPE b, float_status *s)\
+                                                         \
+{                                                        \
+    return NAME(a, b, s);                                \
+}
+
+GEN_TH_F2ARG_FUNC(float16_rsub, uint16_t, uint16_t, uint16_t)
+GEN_TH_F2ARG_FUNC(float32_rsub, uint32_t, uint32_t, uint32_t)
+GEN_TH_F2ARG_FUNC(float64_rsub, uint64_t, uint64_t, uint64_t)
+
+THCALL(TH_OPFVF2, th_vfrsub_vf_h, TH_OP_UUU_H, H2, H2, th_float16_rsub)
+THCALL(TH_OPFVF2, th_vfrsub_vf_w, TH_OP_UUU_W, H4, H4, th_float32_rsub)
+THCALL(TH_OPFVF2, th_vfrsub_vf_d, TH_OP_UUU_D, H8, H8, th_float64_rsub)
+GEN_TH_VF(th_vfrsub_vf_h, 2, 2, clearh_th)
+GEN_TH_VF(th_vfrsub_vf_w, 4, 4, clearl_th)
+GEN_TH_VF(th_vfrsub_vf_d, 8, 8, clearq_th)

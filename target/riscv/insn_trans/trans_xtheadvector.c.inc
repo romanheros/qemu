@@ -1827,17 +1827,124 @@ GEN_OPIVX_NARROW_TRANS_TH(th_vnclip_vx)
 GEN_OPIVI_NARROW_TRANS_TH(th_vnclipu_vi, IMM_ZX, th_vnclipu_vx)
 GEN_OPIVI_NARROW_TRANS_TH(th_vnclip_vi, IMM_ZX, th_vnclip_vx)
 
+/*
+ *** Vector Float Point Arithmetic Instructions
+ */
+/* Vector Single-Width Floating-Point Add/Subtract Instructions */
+/*
+ * If the current SEW does not correspond to a supported IEEE floating-point
+ * type, an illegal instruction exception is raised.
+ */
+static bool opfvv_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return require_thv(s) &&
+           th_check_isa_ill(s) &&
+           th_check_overlap_mask(s, a->rd, a->vm, false) &&
+           th_check_reg(s, a->rd, false) &&
+           th_check_reg(s, a->rs2, false) &&
+           th_check_reg(s, a->rs1, false) &&
+           (s->sew != 0);
+}
+/*
+ * The macro below including GEN_OPFVV_TRANS_TH and GEN_OPFVF_TRANS_TH,
+ * are just changed the data encoding compared to RVV1.0.
+ */
+/* OPFVV without GVEC IR */
+#define GEN_OPFVV_TRANS_TH(NAME, CHECK)                            \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
+{                                                                  \
+    if (CHECK(s, a)) {                                             \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_4_ptr * const fns[3] = {            \
+            gen_helper_##NAME##_h,                                 \
+            gen_helper_##NAME##_w,                                 \
+            gen_helper_##NAME##_d,                                 \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        gen_set_rm(s, RISCV_FRM_DYN);                              \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs1),                 \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew - 1]);                       \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+
+GEN_OPFVV_TRANS_TH(th_vfadd_vv, opfvv_check_th)
+GEN_OPFVV_TRANS_TH(th_vfsub_vv, opfvv_check_th)
+
+#define gen_helper_opfvf_th gen_helper_opfvf
+/*
+ * XTheadVector has different process policy when FLEN < SEW from
+ * RVV1.0. In XTheadVector, when FLEN < SEW, the value in freg should
+ * be nanboxed, while in RVV1.0, this situation is reserved.
+ * However, RVF-only cpus always have values NaN-boxed to 64-bits, so
+ * we do not have to deal with this situation differently. We can just
+ * use the RVV function
+ */
+static bool opfvf_trans_th(uint32_t vd, uint32_t rs1, uint32_t vs2,
+                           uint32_t data, gen_helper_opfvf_th *fn,
+                           DisasContext *s)
+{
+    return opfvf_trans(vd, rs1, vs2, data, fn, s);
+}
+
+static bool opfvf_check_th(DisasContext *s, arg_rmrr *a)
+{
+/*
+ * If the current SEW does not correspond to a supported IEEE floating-point
+ * type, an illegal instruction exception is raised
+ */
+    return require_thv(s) &&
+           th_check_isa_ill(s) &&
+           th_check_overlap_mask(s, a->rd, a->vm, false) &&
+           th_check_reg(s, a->rd, false) &&
+           th_check_reg(s, a->rs2, false) &&
+           (s->sew != 0);
+}
+
+/* OPFVF without GVEC IR */
+#define GEN_OPFVF_TRANS_TH(NAME, CHECK)                           \
+static bool trans_##NAME(DisasContext *s, arg_rmrr *a)            \
+{                                                                 \
+    if (CHECK(s, a)) {                                            \
+        uint32_t data = 0;                                        \
+        static gen_helper_opfvf_th *const fns[3] = {              \
+            gen_helper_##NAME##_h,                                \
+            gen_helper_##NAME##_w,                                \
+            gen_helper_##NAME##_d,                                \
+        };                                                        \
+        gen_set_rm(s, RISCV_FRM_DYN);                             \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);         \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);             \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);         \
+        return opfvf_trans_th(a->rd, a->rs1, a->rs2, data,        \
+                              fns[s->sew - 1], s);                \
+    }                                                             \
+    return false;                                                 \
+}
+
+GEN_OPFVF_TRANS_TH(th_vfadd_vf,  opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfsub_vf,  opfvf_check_th)
+GEN_OPFVF_TRANS_TH(th_vfrsub_vf,  opfvf_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfadd_vv)
-TH_TRANS_STUB(th_vfadd_vf)
-TH_TRANS_STUB(th_vfsub_vv)
-TH_TRANS_STUB(th_vfsub_vf)
-TH_TRANS_STUB(th_vfrsub_vf)
 TH_TRANS_STUB(th_vfwadd_vv)
 TH_TRANS_STUB(th_vfwadd_vf)
 TH_TRANS_STUB(th_vfwadd_wv)
