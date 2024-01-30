@@ -2254,7 +2254,8 @@ static bool trans_th_vfmv_v_f(DisasContext *s, arg_th_vfmv_v_f *a)
 {
     if (require_thv(s) &&
         th_check_isa_ill(s) &&
-        th_check_reg(s, a->rd, false)) {
+        th_check_reg(s, a->rd, false) &&
+        (s->sew != 0)) {
 
         TCGv_i64 t1;
 
@@ -2295,16 +2296,18 @@ static bool trans_th_vfmv_v_f(DisasContext *s, arg_th_vfmv_v_f *a)
     return false;
 }
 
+/* Single-Width Floating-Point/Integer Type-Convert Instructions */
+GEN_OPFV_TRANS_TH(th_vfcvt_xu_f_v, opfv_check_th)
+GEN_OPFV_TRANS_TH(th_vfcvt_x_f_v, opfv_check_th)
+GEN_OPFV_TRANS_TH(th_vfcvt_f_xu_v, opfv_check_th)
+GEN_OPFV_TRANS_TH(th_vfcvt_f_x_v, opfv_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfcvt_xu_f_v)
-TH_TRANS_STUB(th_vfcvt_x_f_v)
-TH_TRANS_STUB(th_vfcvt_f_xu_v)
-TH_TRANS_STUB(th_vfcvt_f_x_v)
 TH_TRANS_STUB(th_vfwcvt_xu_f_v)
 TH_TRANS_STUB(th_vfwcvt_x_f_v)
 TH_TRANS_STUB(th_vfwcvt_f_xu_v)

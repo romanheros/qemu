@@ -3423,3 +3423,36 @@ void HELPER(NAME)(void *vd, void *v0, uint64_t s1, void *vs2, \
 GEN_VFMERGE_VF_TH(th_vfmerge_vfm_h, int16_t, H2, clearh_th)
 GEN_VFMERGE_VF_TH(th_vfmerge_vfm_w, int32_t, H4, clearl_th)
 GEN_VFMERGE_VF_TH(th_vfmerge_vfm_d, int64_t, H8, clearq_th)
+
+/* Single-Width Floating-Point/Integer Type-Convert Instructions */
+/* vfcvt.xu.f.v vd, vs2, vm # Convert float to unsigned integer. */
+THCALL(TH_OPFVV1, th_vfcvt_xu_f_v_h, TH_OP_UU_H, H2, H2, float16_to_uint16)
+THCALL(TH_OPFVV1, th_vfcvt_xu_f_v_w, TH_OP_UU_W, H4, H4, float32_to_uint32)
+THCALL(TH_OPFVV1, th_vfcvt_xu_f_v_d, TH_OP_UU_D, H8, H8, float64_to_uint64)
+GEN_TH_V_ENV(th_vfcvt_xu_f_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfcvt_xu_f_v_w, 4, 4, clearl_th)
+GEN_TH_V_ENV(th_vfcvt_xu_f_v_d, 8, 8, clearq_th)
+
+/* vfcvt.x.f.v vd, vs2, vm # Convert float to signed integer. */
+THCALL(TH_OPFVV1, th_vfcvt_x_f_v_h, TH_OP_UU_H, H2, H2, float16_to_int16)
+THCALL(TH_OPFVV1, th_vfcvt_x_f_v_w, TH_OP_UU_W, H4, H4, float32_to_int32)
+THCALL(TH_OPFVV1, th_vfcvt_x_f_v_d, TH_OP_UU_D, H8, H8, float64_to_int64)
+GEN_TH_V_ENV(th_vfcvt_x_f_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfcvt_x_f_v_w, 4, 4, clearl_th)
+GEN_TH_V_ENV(th_vfcvt_x_f_v_d, 8, 8, clearq_th)
+
+/* vfcvt.f.xu.v vd, vs2, vm # Convert unsigned integer to float. */
+THCALL(TH_OPFVV1, th_vfcvt_f_xu_v_h, TH_OP_UU_H, H2, H2, uint16_to_float16)
+THCALL(TH_OPFVV1, th_vfcvt_f_xu_v_w, TH_OP_UU_W, H4, H4, uint32_to_float32)
+THCALL(TH_OPFVV1, th_vfcvt_f_xu_v_d, TH_OP_UU_D, H8, H8, uint64_to_float64)
+GEN_TH_V_ENV(th_vfcvt_f_xu_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfcvt_f_xu_v_w, 4, 4, clearl_th)
+GEN_TH_V_ENV(th_vfcvt_f_xu_v_d, 8, 8, clearq_th)
+
+/* vfcvt.f.x.v vd, vs2, vm # Convert integer to float. */
+THCALL(TH_OPFVV1, th_vfcvt_f_x_v_h, TH_OP_UU_H, H2, H2, int16_to_float16)
+THCALL(TH_OPFVV1, th_vfcvt_f_x_v_w, TH_OP_UU_W, H4, H4, int32_to_float32)
+THCALL(TH_OPFVV1, th_vfcvt_f_x_v_d, TH_OP_UU_D, H8, H8, int64_to_float64)
+GEN_TH_V_ENV(th_vfcvt_f_x_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfcvt_f_x_v_w, 4, 4, clearl_th)
+GEN_TH_V_ENV(th_vfcvt_f_x_v_d, 8, 8, clearq_th)
