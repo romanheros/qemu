@@ -3503,3 +3503,48 @@ THCALL(TH_OPFVV1, th_vfwcvt_f_f_v_h, TH_WOP_UU_H, H4, H2, vfwcvtffv16)
 THCALL(TH_OPFVV1, th_vfwcvt_f_f_v_w, TH_WOP_UU_W, H8, H4, float32_to_float64)
 GEN_TH_V_ENV(th_vfwcvt_f_f_v_h, 2, 4, clearl_th)
 GEN_TH_V_ENV(th_vfwcvt_f_f_v_w, 4, 8, clearq_th)
+
+/* Narrowing Floating-Point/Integer Type-Convert Instructions */
+/* (TD, T2, TX2) */
+
+#define TH_NOP_UU_B uint8_t, uint16_t, uint16_t
+#define TH_NOP_UU_H uint16_t, uint32_t, uint32_t
+#define TH_NOP_UU_W uint32_t, uint64_t, uint64_t
+/* vfncvt.xu.f.v vd, vs2, vm # Convert float to unsigned integer. */
+THCALL(TH_OPFVV1, th_vfncvt_xu_f_v_b, TH_NOP_UU_B, H1, H2, float16_to_uint8)
+THCALL(TH_OPFVV1, th_vfncvt_xu_f_v_h, TH_NOP_UU_H, H2, H4, float32_to_uint16)
+THCALL(TH_OPFVV1, th_vfncvt_xu_f_v_w, TH_NOP_UU_W, H4, H8, float64_to_uint32)
+GEN_TH_V_ENV(th_vfncvt_xu_f_v_b, 1, 1, clearb_th)
+GEN_TH_V_ENV(th_vfncvt_xu_f_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfncvt_xu_f_v_w, 4, 4, clearl_th)
+
+/* vfncvt.x.f.v vd, vs2, vm # Convert double-width float to signed integer. */
+THCALL(TH_OPFVV1, th_vfncvt_x_f_v_b, TH_NOP_UU_B, H1, H2, float16_to_int8)
+THCALL(TH_OPFVV1, th_vfncvt_x_f_v_h, TH_NOP_UU_H, H2, H4, float32_to_int16)
+THCALL(TH_OPFVV1, th_vfncvt_x_f_v_w, TH_NOP_UU_W, H4, H8, float64_to_int32)
+GEN_TH_V_ENV(th_vfncvt_x_f_v_b, 1, 1, clearb_th)
+GEN_TH_V_ENV(th_vfncvt_x_f_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfncvt_x_f_v_w, 4, 4, clearl_th)
+
+/* vfncvt.f.xu.v vd, vs2, vm # Convert double-width unsigned integer to float */
+THCALL(TH_OPFVV1, th_vfncvt_f_xu_v_h, TH_NOP_UU_H, H2, H4, uint32_to_float16)
+THCALL(TH_OPFVV1, th_vfncvt_f_xu_v_w, TH_NOP_UU_W, H4, H8, uint64_to_float32)
+GEN_TH_V_ENV(th_vfncvt_f_xu_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfncvt_f_xu_v_w, 4, 4, clearl_th)
+
+/* vfncvt.f.x.v vd, vs2, vm # Convert double-width integer to float. */
+THCALL(TH_OPFVV1, th_vfncvt_f_x_v_h, TH_NOP_UU_H, H2, H4, int32_to_float16)
+THCALL(TH_OPFVV1, th_vfncvt_f_x_v_w, TH_NOP_UU_W, H4, H8, int64_to_float32)
+GEN_TH_V_ENV(th_vfncvt_f_x_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfncvt_f_x_v_w, 4, 4, clearl_th)
+
+/* vfncvt.f.f.v vd, vs2, vm # Convert double float to single-width float. */
+static uint16_t vfncvtffv16(uint32_t a, float_status *s)
+{
+    return float32_to_float16(a, true, s);
+}
+
+THCALL(TH_OPFVV1, th_vfncvt_f_f_v_h, TH_NOP_UU_H, H2, H4, vfncvtffv16)
+THCALL(TH_OPFVV1, th_vfncvt_f_f_v_w, TH_NOP_UU_W, H4, H8, float64_to_float32)
+GEN_TH_V_ENV(th_vfncvt_f_f_v_h, 2, 2, clearh_th)
+GEN_TH_V_ENV(th_vfncvt_f_f_v_w, 4, 4, clearl_th)
