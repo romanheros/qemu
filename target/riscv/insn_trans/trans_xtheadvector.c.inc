@@ -1831,6 +1831,12 @@ GEN_OPIVI_NARROW_TRANS_TH(th_vnclip_vi, IMM_ZX, th_vnclip_vx)
  *** Vector Float Point Arithmetic Instructions
  */
 /* Vector Single-Width Floating-Point Add/Subtract Instructions */
+
+static void th_nanbox(DisasContext *s, TCGv_i64 out, TCGv_i64 in)
+{
+    return do_nanbox(s, out, in);
+}
+
 /*
  * If the current SEW does not correspond to a supported IEEE floating-point
  * type, an illegal instruction exception is raised.
@@ -2237,15 +2243,64 @@ GEN_OPFVF_TRANS_TH(th_vmfgt_vf, opfvf_cmp_check_th)
 GEN_OPFVF_TRANS_TH(th_vmfge_vf, opfvf_cmp_check_th)
 GEN_OPFVF_TRANS_TH(th_vmford_vf, opfvf_cmp_check_th)
 
+/* Vector Floating-Point Classify Instruction */
+GEN_OPFV_TRANS_TH(th_vfclass_v, opfv_check_th)
+
+/* Vector Floating-Point Merge Instruction */
+GEN_OPFVF_TRANS_TH(th_vfmerge_vfm,  opfvf_check_th)
+
+/* Besides of nanbox, th_vfmv_v_f just reuse the helper_th_vmv_v_x */
+static bool trans_th_vfmv_v_f(DisasContext *s, arg_th_vfmv_v_f *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false)) {
+
+        TCGv_i64 t1;
+
+        if (s->vl_eq_vlmax) {
+            t1 = tcg_temp_new_i64();
+            /* NaN-box f[rs1] */
+            do_nanbox(s, t1, cpu_fpr[a->rs1]);
+            tcg_gen_gvec_dup_i64(s->sew, th_vreg_ofs(s, a->rd),
+                                 MAXSZ_TH(s), MAXSZ_TH(s), t1);
+            mark_vs_dirty(s);
+        } else {
+            TCGv_ptr dest;
+            TCGv_i32 desc;
+            uint32_t data = FIELD_DP32(0, VDATA_TH, LMUL, s->lmul);
+            static gen_helper_vmv_vx_th * const fns[3] = {
+                gen_helper_th_vmv_v_x_h,
+                gen_helper_th_vmv_v_x_w,
+                gen_helper_th_vmv_v_x_d,
+            };
+            TCGLabel *over = gen_new_label();
+            tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+            t1 = tcg_temp_new_i64();
+            /* NaN-box f[rs1] */
+            th_nanbox(s, t1, cpu_fpr[a->rs1]);
+
+            dest = tcg_temp_new_ptr();
+            desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                              s->cfg_ptr->vlen / 8, data));
+            tcg_gen_addi_ptr(dest, tcg_env, th_vreg_ofs(s, a->rd));
+            fns[s->sew - 1](dest, t1, tcg_env, desc);
+
+            mark_vs_dirty(s);
+            gen_set_label(over);
+        }
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfclass_v)
-TH_TRANS_STUB(th_vfmerge_vfm)
-TH_TRANS_STUB(th_vfmv_v_f)
 TH_TRANS_STUB(th_vfcvt_xu_f_v)
 TH_TRANS_STUB(th_vfcvt_x_f_v)
 TH_TRANS_STUB(th_vfcvt_f_xu_v)

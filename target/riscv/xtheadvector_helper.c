@@ -3352,3 +3352,74 @@ GEN_TH_CMP_VV_ENV(th_vmford_vv_d, uint64_t, H8, !float64_unordered_quiet)
 GEN_TH_CMP_VF(th_vmford_vf_h, uint16_t, H2, !float16_unordered_quiet)
 GEN_TH_CMP_VF(th_vmford_vf_w, uint32_t, H4, !float32_unordered_quiet)
 GEN_TH_CMP_VF(th_vmford_vf_d, uint64_t, H8, !float64_unordered_quiet)
+
+/* Vector Floating-Point Classify Instruction */
+static target_ulong th_fclass_h(uint64_t frs1)
+{
+    return fclass_h(frs1);
+}
+
+static target_ulong th_fclass_s(uint64_t frs1)
+{
+    return fclass_s(frs1);
+}
+
+static target_ulong th_fclass_d(uint64_t frs1)
+{
+    return fclass_d(frs1);
+}
+
+#define TH_OPIVV1(NAME, TD, T2, TX2, HD, HS2, OP) \
+        OPIVV1(NAME, TD, T2, TX2, HD, HS2, OP)
+
+#define GEN_TH_V(NAME, ESZ, DSZ, CLEAR_FN)             \
+void HELPER(NAME)(void *vd, void *v0, void *vs2,       \
+                  CPURISCVState *env, uint32_t desc)   \
+{                                                      \
+    uint32_t vlmax = th_maxsz(desc) / ESZ;             \
+    uint32_t mlen = th_mlen(desc);                     \
+    uint32_t vm = th_vm(desc);                         \
+    uint32_t vl = env->vl;                             \
+    uint32_t i;                                        \
+                                                       \
+    for (i = env->vstart; i < vl; i++) {               \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {       \
+            continue;                                  \
+        }                                              \
+        do_##NAME(vd, vs2, i);                         \
+    }                                                  \
+    env->vstart = 0;                                   \
+    CLEAR_FN(vd, vl, vl * DSZ,  vlmax * DSZ);          \
+}
+
+THCALL(TH_OPIVV1, th_vfclass_v_h, TH_OP_UU_H, H2, H2, th_fclass_h)
+THCALL(TH_OPIVV1, th_vfclass_v_w, TH_OP_UU_W, H4, H4, th_fclass_s)
+THCALL(TH_OPIVV1, th_vfclass_v_d, TH_OP_UU_D, H8, H8, th_fclass_d)
+GEN_TH_V(th_vfclass_v_h, 2, 2, clearh_th)
+GEN_TH_V(th_vfclass_v_w, 4, 4, clearl_th)
+GEN_TH_V(th_vfclass_v_d, 8, 8, clearq_th)
+
+/* Vector Floating-Point Merge Instruction */
+#define GEN_VFMERGE_VF_TH(NAME, ETYPE, H, CLEAR_FN)           \
+void HELPER(NAME)(void *vd, void *v0, uint64_t s1, void *vs2, \
+                  CPURISCVState *env, uint32_t desc)          \
+{                                                             \
+    uint32_t mlen = th_mlen(desc);                            \
+    uint32_t vm = th_vm(desc);                                \
+    uint32_t vl = env->vl;                                    \
+    uint32_t esz = sizeof(ETYPE);                             \
+    uint32_t vlmax = th_maxsz(desc) / esz;                    \
+    uint32_t i;                                               \
+                                                              \
+    for (i = env->vstart; i < vl; i++) {                      \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
+        *((ETYPE *)vd + H(i))                                 \
+          = (!vm && !th_elem_mask(v0, mlen, i) ? s2 : s1);    \
+    }                                                         \
+    env->vstart = 0;                                          \
+    CLEAR_FN(vd, vl, vl * esz, vlmax * esz);                  \
+}
+
+GEN_VFMERGE_VF_TH(th_vfmerge_vfm_h, int16_t, H2, clearh_th)
+GEN_VFMERGE_VF_TH(th_vfmerge_vfm_w, int32_t, H4, clearl_th)
+GEN_VFMERGE_VF_TH(th_vfmerge_vfm_d, int64_t, H8, clearq_th)
