@@ -2302,17 +2302,106 @@ GEN_OPFV_TRANS_TH(th_vfcvt_x_f_v, opfv_check_th)
 GEN_OPFV_TRANS_TH(th_vfcvt_f_xu_v, opfv_check_th)
 GEN_OPFV_TRANS_TH(th_vfcvt_f_x_v, opfv_check_th)
 
+/* Widening Floating-Point/Integer Type-Convert Instructions */
+
+/*
+ * If the current SEW does not correspond to a supported IEEE floating-point
+ * type, an illegal instruction exception is raised
+ */
+static bool opfv_widen_check_th(DisasContext *s, arg_rmr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs2,
+                                   1 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3) && (s->sew != 0));
+}
+
+static bool opfxv_widen_check_th(DisasContext *s, arg_rmr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, true) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_overlap_group(a->rd, 2 << s->lmul, a->rs2,
+                                   1 << s->lmul) &&
+            (s->lmul < 0x3) && (s->sew < 0x3));
+}
+
+#define GEN_OPFXV_WIDEN_TRANS_TH(NAME)                             \
+static bool trans_##NAME(DisasContext *s, arg_rmr *a)              \
+{                                                                  \
+    if (opfxv_widen_check_th(s, a)) {                              \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_3_ptr * const fns[3] = {            \
+            gen_helper_##NAME##_b,                                 \
+            gen_helper_##NAME##_h,                                 \
+            gen_helper_##NAME##_w,                                 \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        gen_set_rm(s, RISCV_FRM_DYN);                              \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_3_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew]);                           \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+GEN_OPFXV_WIDEN_TRANS_TH(th_vfwcvt_f_xu_v)
+GEN_OPFXV_WIDEN_TRANS_TH(th_vfwcvt_f_x_v)
+
+#define GEN_OPFV_WIDEN_TRANS_TH(NAME)                              \
+static bool trans_##NAME(DisasContext *s, arg_rmr *a)              \
+{                                                                  \
+    if (opfv_widen_check_th(s, a)) {                               \
+        uint32_t data = 0;                                         \
+        static gen_helper_gvec_3_ptr * const fns[2] = {            \
+            gen_helper_##NAME##_h,                                 \
+            gen_helper_##NAME##_w,                                 \
+        };                                                         \
+        TCGLabel *over = gen_new_label();                          \
+        gen_set_rm(s, RISCV_FRM_DYN);                              \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_3_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data,             \
+                           fns[s->sew - 1]);                       \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+GEN_OPFV_WIDEN_TRANS_TH(th_vfwcvt_xu_f_v)
+GEN_OPFV_WIDEN_TRANS_TH(th_vfwcvt_x_f_v)
+GEN_OPFV_WIDEN_TRANS_TH(th_vfwcvt_f_f_v)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfwcvt_xu_f_v)
-TH_TRANS_STUB(th_vfwcvt_x_f_v)
-TH_TRANS_STUB(th_vfwcvt_f_xu_v)
-TH_TRANS_STUB(th_vfwcvt_f_x_v)
-TH_TRANS_STUB(th_vfwcvt_f_f_v)
 TH_TRANS_STUB(th_vfncvt_xu_f_v)
 TH_TRANS_STUB(th_vfncvt_x_f_v)
 TH_TRANS_STUB(th_vfncvt_f_xu_v)
