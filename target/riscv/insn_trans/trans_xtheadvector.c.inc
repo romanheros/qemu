@@ -2200,24 +2200,49 @@ GEN_OPFVF_TRANS_TH(th_vfsgnj_vf, opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfsgnjn_vf, opfvf_check_th)
 GEN_OPFVF_TRANS_TH(th_vfsgnjx_vf, opfvf_check_th)
 
+/* Vector Floating-Point Compare Instructions */
+static bool opfvv_cmp_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            (s->sew != 0) &&
+            ((th_check_overlap_group(a->rd, 1, a->rs1, 1 << s->lmul) &&
+              th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul)) ||
+             (s->lmul == 0)));
+}
+
+GEN_OPFVV_TRANS_TH(th_vmfeq_vv, opfvv_cmp_check_th)
+GEN_OPFVV_TRANS_TH(th_vmfne_vv, opfvv_cmp_check_th)
+GEN_OPFVV_TRANS_TH(th_vmflt_vv, opfvv_cmp_check_th)
+GEN_OPFVV_TRANS_TH(th_vmfle_vv, opfvv_cmp_check_th)
+GEN_OPFVV_TRANS_TH(th_vmford_vv, opfvv_cmp_check_th)
+
+static bool opfvf_cmp_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rs2, false) &&
+            (s->sew != 0) &&
+            (th_check_overlap_group(a->rd, 1, a->rs2, 1 << s->lmul) ||
+             (s->lmul == 0)));
+}
+
+GEN_OPFVF_TRANS_TH(th_vmfeq_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmfne_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmflt_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmfle_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmfgt_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmfge_vf, opfvf_cmp_check_th)
+GEN_OPFVF_TRANS_TH(th_vmford_vf, opfvf_cmp_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmfeq_vv)
-TH_TRANS_STUB(th_vmfeq_vf)
-TH_TRANS_STUB(th_vmfne_vv)
-TH_TRANS_STUB(th_vmfne_vf)
-TH_TRANS_STUB(th_vmflt_vv)
-TH_TRANS_STUB(th_vmflt_vf)
-TH_TRANS_STUB(th_vmfle_vv)
-TH_TRANS_STUB(th_vmfle_vf)
-TH_TRANS_STUB(th_vmfgt_vf)
-TH_TRANS_STUB(th_vmfge_vf)
-TH_TRANS_STUB(th_vmford_vv)
-TH_TRANS_STUB(th_vmford_vf)
 TH_TRANS_STUB(th_vfclass_v)
 TH_TRANS_STUB(th_vfmerge_vfm)
 TH_TRANS_STUB(th_vfmv_v_f)

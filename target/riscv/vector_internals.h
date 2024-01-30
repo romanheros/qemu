@@ -356,4 +356,14 @@ uint16_t fsgnjx16(uint16_t a, uint16_t b, float_status *s);
 uint32_t fsgnjx32(uint32_t a, uint32_t b, float_status *s);
 uint64_t fsgnjx64(uint64_t a, uint64_t b, float_status *s);
 
+bool vmfne16(uint16_t a, uint16_t b, float_status *s);
+bool vmfne32(uint32_t a, uint32_t b, float_status *s);
+bool vmfne64(uint64_t a, uint64_t b, float_status *s);
+bool vmfgt16(uint16_t a, uint16_t b, float_status *s);
+bool vmfgt32(uint32_t a, uint32_t b, float_status *s);
+bool vmfgt64(uint64_t a, uint64_t b, float_status *s);
+bool vmfge16(uint16_t a, uint16_t b, float_status *s);
+bool vmfge32(uint32_t a, uint32_t b, float_status *s);
+bool vmfge64(uint64_t a, uint64_t b, float_status *s);
+
 #endif /* TARGET_RISCV_VECTOR_INTERNALS_H */

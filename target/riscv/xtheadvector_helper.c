@@ -3246,3 +3246,109 @@ THCALL(TH_OPFVF2, th_vfsgnjx_vf_d, TH_OP_UUU_D, H8, H8, th_fsgnjx64)
 GEN_TH_VF(th_vfsgnjx_vf_h, 2, 2, clearh_th)
 GEN_TH_VF(th_vfsgnjx_vf_w, 4, 4, clearl_th)
 GEN_TH_VF(th_vfsgnjx_vf_d, 8, 8, clearq_th)
+
+/* Vector Floating-Point Compare Instructions */
+#define GEN_TH_CMP_VV_ENV(NAME, ETYPE, H, DO_OP)              \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,   \
+                  CPURISCVState *env, uint32_t desc)          \
+{                                                             \
+    uint32_t mlen = th_mlen(desc);                            \
+    uint32_t vm = th_vm(desc);                                \
+    uint32_t vl = env->vl;                                    \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);          \
+    uint32_t i;                                               \
+                                                              \
+    for (i = env->vstart; i < vl; i++) {                      \
+        ETYPE s1 = *((ETYPE *)vs1 + H(i));                    \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {              \
+            continue;                                         \
+        }                                                     \
+        th_set_elem_mask(vd, mlen, i,                         \
+                         DO_OP(s2, s1, &env->fp_status));     \
+    }                                                         \
+    env->vstart = 0;                                          \
+    for (; i < vlmax; i++) {                                  \
+        th_set_elem_mask(vd, mlen, i, 0);                     \
+    }                                                         \
+}
+
+GEN_TH_CMP_VV_ENV(th_vmfeq_vv_h, uint16_t, H2, float16_eq_quiet)
+GEN_TH_CMP_VV_ENV(th_vmfeq_vv_w, uint32_t, H4, float32_eq_quiet)
+GEN_TH_CMP_VV_ENV(th_vmfeq_vv_d, uint64_t, H8, float64_eq_quiet)
+
+#define GEN_TH_CMP_VF(NAME, ETYPE, H, DO_OP)                        \
+void HELPER(NAME)(void *vd, void *v0, uint64_t s1, void *vs2,       \
+                  CPURISCVState *env, uint32_t desc)                \
+{                                                                   \
+    uint32_t mlen = th_mlen(desc);                                  \
+    uint32_t vm = th_vm(desc);                                      \
+    uint32_t vl = env->vl;                                          \
+    uint32_t vlmax = th_maxsz(desc) / sizeof(ETYPE);                \
+    uint32_t i;                                                     \
+                                                                    \
+    for (i = env->vstart; i < vl; i++) {                            \
+        ETYPE s2 = *((ETYPE *)vs2 + H(i));                          \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                    \
+            continue;                                               \
+        }                                                           \
+        th_set_elem_mask(vd, mlen, i,                               \
+                         DO_OP(s2, (ETYPE)s1, &env->fp_status));    \
+    }                                                               \
+    env->vstart = 0;                                                \
+    for (; i < vlmax; i++) {                                        \
+        th_set_elem_mask(vd, mlen, i, 0);                           \
+    }                                                               \
+}
+
+GEN_TH_CMP_VF(th_vmfeq_vf_h, uint16_t, H2, float16_eq_quiet)
+GEN_TH_CMP_VF(th_vmfeq_vf_w, uint32_t, H4, float32_eq_quiet)
+GEN_TH_CMP_VF(th_vmfeq_vf_d, uint64_t, H8, float64_eq_quiet)
+
+GEN_TH_F2ARG_FUNC(vmfne16, uint16_t, uint16_t, bool)
+GEN_TH_F2ARG_FUNC(vmfne32, uint32_t, uint32_t, bool)
+GEN_TH_F2ARG_FUNC(vmfne64, uint64_t, uint64_t, bool)
+
+GEN_TH_CMP_VV_ENV(th_vmfne_vv_h, uint16_t, H2, th_vmfne16)
+GEN_TH_CMP_VV_ENV(th_vmfne_vv_w, uint32_t, H4, th_vmfne32)
+GEN_TH_CMP_VV_ENV(th_vmfne_vv_d, uint64_t, H8, th_vmfne64)
+GEN_TH_CMP_VF(th_vmfne_vf_h, uint16_t, H2, th_vmfne16)
+GEN_TH_CMP_VF(th_vmfne_vf_w, uint32_t, H4, th_vmfne32)
+GEN_TH_CMP_VF(th_vmfne_vf_d, uint64_t, H8, th_vmfne64)
+
+GEN_TH_CMP_VV_ENV(th_vmflt_vv_h, uint16_t, H2, float16_lt)
+GEN_TH_CMP_VV_ENV(th_vmflt_vv_w, uint32_t, H4, float32_lt)
+GEN_TH_CMP_VV_ENV(th_vmflt_vv_d, uint64_t, H8, float64_lt)
+GEN_TH_CMP_VF(th_vmflt_vf_h, uint16_t, H2, float16_lt)
+GEN_TH_CMP_VF(th_vmflt_vf_w, uint32_t, H4, float32_lt)
+GEN_TH_CMP_VF(th_vmflt_vf_d, uint64_t, H8, float64_lt)
+
+GEN_TH_CMP_VV_ENV(th_vmfle_vv_h, uint16_t, H2, float16_le)
+GEN_TH_CMP_VV_ENV(th_vmfle_vv_w, uint32_t, H4, float32_le)
+GEN_TH_CMP_VV_ENV(th_vmfle_vv_d, uint64_t, H8, float64_le)
+GEN_TH_CMP_VF(th_vmfle_vf_h, uint16_t, H2, float16_le)
+GEN_TH_CMP_VF(th_vmfle_vf_w, uint32_t, H4, float32_le)
+GEN_TH_CMP_VF(th_vmfle_vf_d, uint64_t, H8, float64_le)
+
+GEN_TH_F2ARG_FUNC(vmfgt16, uint16_t, uint16_t, bool)
+GEN_TH_F2ARG_FUNC(vmfgt32, uint32_t, uint32_t, bool)
+GEN_TH_F2ARG_FUNC(vmfgt64, uint64_t, uint64_t, bool)
+
+GEN_TH_CMP_VF(th_vmfgt_vf_h, uint16_t, H2, th_vmfgt16)
+GEN_TH_CMP_VF(th_vmfgt_vf_w, uint32_t, H4, th_vmfgt32)
+GEN_TH_CMP_VF(th_vmfgt_vf_d, uint64_t, H8, th_vmfgt64)
+
+GEN_TH_F2ARG_FUNC(vmfge16, uint16_t, uint16_t, bool)
+GEN_TH_F2ARG_FUNC(vmfge32, uint32_t, uint32_t, bool)
+GEN_TH_F2ARG_FUNC(vmfge64, uint64_t, uint64_t, bool)
+
+GEN_TH_CMP_VF(th_vmfge_vf_h, uint16_t, H2, th_vmfge16)
+GEN_TH_CMP_VF(th_vmfge_vf_w, uint32_t, H4, th_vmfge32)
+GEN_TH_CMP_VF(th_vmfge_vf_d, uint64_t, H8, th_vmfge64)
+
+GEN_TH_CMP_VV_ENV(th_vmford_vv_h, uint16_t, H2, !float16_unordered_quiet)
+GEN_TH_CMP_VV_ENV(th_vmford_vv_w, uint32_t, H4, !float32_unordered_quiet)
+GEN_TH_CMP_VV_ENV(th_vmford_vv_d, uint64_t, H8, !float64_unordered_quiet)
+GEN_TH_CMP_VF(th_vmford_vf_h, uint16_t, H2, !float16_unordered_quiet)
+GEN_TH_CMP_VF(th_vmford_vf_w, uint32_t, H4, !float32_unordered_quiet)
+GEN_TH_CMP_VF(th_vmford_vf_d, uint64_t, H8, !float64_unordered_quiet)

@@ -4031,19 +4031,19 @@ GEN_VEXT_CMP_VF(vmfeq_vf_h, uint16_t, H2, float16_eq_quiet)
 GEN_VEXT_CMP_VF(vmfeq_vf_w, uint32_t, H4, float32_eq_quiet)
 GEN_VEXT_CMP_VF(vmfeq_vf_d, uint64_t, H8, float64_eq_quiet)
 
-static bool vmfne16(uint16_t a, uint16_t b, float_status *s)
+bool vmfne16(uint16_t a, uint16_t b, float_status *s)
 {
     FloatRelation compare = float16_compare_quiet(a, b, s);
     return compare != float_relation_equal;
 }
 
-static bool vmfne32(uint32_t a, uint32_t b, float_status *s)
+bool vmfne32(uint32_t a, uint32_t b, float_status *s)
 {
     FloatRelation compare = float32_compare_quiet(a, b, s);
     return compare != float_relation_equal;
 }
 
-static bool vmfne64(uint64_t a, uint64_t b, float_status *s)
+bool vmfne64(uint64_t a, uint64_t b, float_status *s)
 {
     FloatRelation compare = float64_compare_quiet(a, b, s);
     return compare != float_relation_equal;
@@ -4070,19 +4070,19 @@ GEN_VEXT_CMP_VF(vmfle_vf_h, uint16_t, H2, float16_le)
 GEN_VEXT_CMP_VF(vmfle_vf_w, uint32_t, H4, float32_le)
 GEN_VEXT_CMP_VF(vmfle_vf_d, uint64_t, H8, float64_le)
 
-static bool vmfgt16(uint16_t a, uint16_t b, float_status *s)
+bool vmfgt16(uint16_t a, uint16_t b, float_status *s)
 {
     FloatRelation compare = float16_compare(a, b, s);
     return compare == float_relation_greater;
 }
 
-static bool vmfgt32(uint32_t a, uint32_t b, float_status *s)
+bool vmfgt32(uint32_t a, uint32_t b, float_status *s)
 {
     FloatRelation compare = float32_compare(a, b, s);
     return compare == float_relation_greater;
 }
 
-static bool vmfgt64(uint64_t a, uint64_t b, float_status *s)
+bool vmfgt64(uint64_t a, uint64_t b, float_status *s)
 {
     FloatRelation compare = float64_compare(a, b, s);
     return compare == float_relation_greater;
@@ -4092,21 +4092,21 @@ GEN_VEXT_CMP_VF(vmfgt_vf_h, uint16_t, H2, vmfgt16)
 GEN_VEXT_CMP_VF(vmfgt_vf_w, uint32_t, H4, vmfgt32)
 GEN_VEXT_CMP_VF(vmfgt_vf_d, uint64_t, H8, vmfgt64)
 
-static bool vmfge16(uint16_t a, uint16_t b, float_status *s)
+bool vmfge16(uint16_t a, uint16_t b, float_status *s)
 {
     FloatRelation compare = float16_compare(a, b, s);
     return compare == float_relation_greater ||
            compare == float_relation_equal;
 }
 
-static bool vmfge32(uint32_t a, uint32_t b, float_status *s)
+bool vmfge32(uint32_t a, uint32_t b, float_status *s)
 {
     FloatRelation compare = float32_compare(a, b, s);
     return compare == float_relation_greater ||
            compare == float_relation_equal;
 }
 
-static bool vmfge64(uint64_t a, uint64_t b, float_status *s)
+bool vmfge64(uint64_t a, uint64_t b, float_status *s)
 {
     FloatRelation compare = float64_compare(a, b, s);
     return compare == float_relation_greater ||
