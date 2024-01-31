@@ -2620,15 +2620,47 @@ static bool trans_th_vmfirst_m(DisasContext *s, arg_rmr *a)
     return false;
 }
 
+/* vmsbf.m set-before-first mask bit */
+/* vmsif.m set-includ-first mask bit */
+/* vmsof.m set-only-first mask bit */
+#define GEN_M_TRANS_TH(NAME)                                       \
+static bool trans_##NAME(DisasContext *s, arg_rmr *a)              \
+{                                                                  \
+    if (require_thv(s) &&                                          \
+        th_check_isa_ill(s) &&                                     \
+        (a->rd != a->rs2) &&                                       \
+        s->vstart_eq_zero) {                                       \
+        uint32_t data = 0;                                         \
+        gen_helper_gvec_3_ptr *fn = gen_helper_##NAME;             \
+        TCGLabel *over = gen_new_label();                          \
+        tcg_gen_brcondi_tl(TCG_COND_EQ, cpu_vl, 0, over);          \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);              \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_3_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs2),                 \
+                           tcg_env, s->cfg_ptr->vlen / 8,          \
+                           s->cfg_ptr->vlen / 8,                   \
+                           data, fn);                              \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+
+GEN_M_TRANS_TH(th_vmsbf_m)
+GEN_M_TRANS_TH(th_vmsif_m)
+GEN_M_TRANS_TH(th_vmsof_m)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmsbf_m)
-TH_TRANS_STUB(th_vmsif_m)
-TH_TRANS_STUB(th_vmsof_m)
 TH_TRANS_STUB(th_viota_m)
 TH_TRANS_STUB(th_vid_v)
 TH_TRANS_STUB(th_vext_x_v)

@@ -2302,3 +2302,7 @@ DEF_HELPER_6(th_vmxnor_mm, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_4(th_vmpopc_m, tl, ptr, ptr, env, i32)
 
 DEF_HELPER_4(th_vmfirst_m, tl, ptr, ptr, env, i32)
+
+DEF_HELPER_5(th_vmsbf_m, void, ptr, ptr, ptr, env, i32)
+DEF_HELPER_5(th_vmsif_m, void, ptr, ptr, ptr, env, i32)
+DEF_HELPER_5(th_vmsof_m, void, ptr, ptr, ptr, env, i32)

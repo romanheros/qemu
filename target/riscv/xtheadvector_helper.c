@@ -3781,3 +3781,67 @@ target_ulong HELPER(th_vmfirst_m)(void *v0, void *vs2, CPURISCVState *env,
     env->vstart = 0;
     return -1LL;
 }
+
+enum set_mask_type_th {
+    ONLY_FIRST = 1,
+    INCLUDE_FIRST,
+    BEFORE_FIRST,
+};
+
+static void vmsetm(void *vd, void *v0, void *vs2, CPURISCVState *env,
+                   uint32_t desc, enum set_mask_type_th type)
+{
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+    int i;
+    bool first_mask_bit = false;
+
+    for (i = env->vstart; i < vl; i++) {
+        if (!vm && !th_elem_mask(v0, mlen, i)) {
+            continue;
+        }
+        /* write a zero to all following active elements */
+        if (first_mask_bit) {
+            th_set_elem_mask(vd, mlen, i, 0);
+            continue;
+        }
+        if (th_elem_mask(vs2, mlen, i)) {
+            first_mask_bit = true;
+            if (type == BEFORE_FIRST) {
+                th_set_elem_mask(vd, mlen, i, 0);
+            } else {
+                th_set_elem_mask(vd, mlen, i, 1);
+            }
+        } else {
+            if (type == ONLY_FIRST) {
+                th_set_elem_mask(vd, mlen, i, 0);
+            } else {
+                th_set_elem_mask(vd, mlen, i, 1);
+            }
+        }
+    }
+    env->vstart = 0;
+    for (; i < vlmax; i++) {
+        th_set_elem_mask(vd, mlen, i, 0);
+    }
+}
+
+void HELPER(th_vmsbf_m)(void *vd, void *v0, void *vs2, CPURISCVState *env,
+                        uint32_t desc)
+{
+    vmsetm(vd, v0, vs2, env, desc, BEFORE_FIRST);
+}
+
+void HELPER(th_vmsif_m)(void *vd, void *v0, void *vs2, CPURISCVState *env,
+                        uint32_t desc)
+{
+    vmsetm(vd, v0, vs2, env, desc, INCLUDE_FIRST);
+}
+
+void HELPER(th_vmsof_m)(void *vd, void *v0, void *vs2, CPURISCVState *env,
+                        uint32_t desc)
+{
+    vmsetm(vd, v0, vs2, env, desc, ONLY_FIRST);
+}
