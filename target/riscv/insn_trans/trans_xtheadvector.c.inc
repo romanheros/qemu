@@ -2518,13 +2518,15 @@ GEN_OPFVV_TRANS_TH(th_vfredsum_vs, reduction_check_th)
 GEN_OPFVV_TRANS_TH(th_vfredmax_vs, reduction_check_th)
 GEN_OPFVV_TRANS_TH(th_vfredmin_vs, reduction_check_th)
 
+/* Vector Widening Floating-Point Reduction Instructions */
+GEN_OPFVV_WIDEN_TRANS_TH(th_vfwredsum_vs, reduction_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfwredsum_vs)
 TH_TRANS_STUB(th_vmand_mm)
 TH_TRANS_STUB(th_vmnand_mm)
 TH_TRANS_STUB(th_vmandnot_mm)

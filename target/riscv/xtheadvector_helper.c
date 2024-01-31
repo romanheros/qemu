@@ -3683,3 +3683,19 @@ GEN_TH_FRED(th_vfredmin_vs_w, uint32_t, uint32_t, H4, H4,
             float32_minnum, clearl_th)
 GEN_TH_FRED(th_vfredmin_vs_d, uint64_t, uint64_t, H8, H8,
             float64_minnum, clearq_th)
+
+/* Vector Widening Floating-Point Add functions */
+static uint32_t fwadd16(uint32_t a, uint16_t b, float_status *s)
+{
+    return float32_add(a, float16_to_float32(b, true, s), s);
+}
+
+static uint64_t fwadd32(uint64_t a, uint32_t b, float_status *s)
+{
+    return float64_add(a, float32_to_float64(b, s), s);
+}
+
+/* Vector Widening Floating-Point Reduction Instructions */
+/* Unordered reduce 2*SEW = 2*SEW + sum(promote(SEW)) */
+GEN_TH_FRED(th_vfwredsum_vs_h, uint32_t, uint16_t, H4, H2, fwadd16, clearl_th)
+GEN_TH_FRED(th_vfwredsum_vs_w, uint64_t, uint32_t, H8, H4, fwadd32, clearq_th)
