@@ -3623,3 +3623,14 @@ GEN_TH_RED(th_vredxor_vs_b, int8_t, int8_t, H1, H1, TH_XOR, clearb_th)
 GEN_TH_RED(th_vredxor_vs_h, int16_t, int16_t, H2, H2, TH_XOR, clearh_th)
 GEN_TH_RED(th_vredxor_vs_w, int32_t, int32_t, H4, H4, TH_XOR, clearl_th)
 GEN_TH_RED(th_vredxor_vs_d, int64_t, int64_t, H8, H8, TH_XOR, clearq_th)
+
+/* Vector Widening Integer Reduction Instructions */
+/* signed sum reduction into double-width accumulator */
+GEN_TH_RED(th_vwredsum_vs_b, int16_t, int8_t, H2, H1, TH_ADD, clearh_th)
+GEN_TH_RED(th_vwredsum_vs_h, int32_t, int16_t, H4, H2, TH_ADD, clearl_th)
+GEN_TH_RED(th_vwredsum_vs_w, int64_t, int32_t, H8, H4, TH_ADD, clearq_th)
+
+/* Unsigned sum reduction into double-width accumulator */
+GEN_TH_RED(th_vwredsumu_vs_b, uint16_t, uint8_t, H2, H1, TH_ADD, clearh_th)
+GEN_TH_RED(th_vwredsumu_vs_h, uint32_t, uint16_t, H4, H2, TH_ADD, clearl_th)
+GEN_TH_RED(th_vwredsumu_vs_w, uint64_t, uint32_t, H8, H4, TH_ADD, clearq_th)

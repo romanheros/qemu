@@ -2509,14 +2509,16 @@ GEN_OPIVV_TRANS_TH(th_vredand_vs, reduction_check_th)
 GEN_OPIVV_TRANS_TH(th_vredor_vs, reduction_check_th)
 GEN_OPIVV_TRANS_TH(th_vredxor_vs, reduction_check_th)
 
+/* Vector Widening Integer Reduction Instructions */
+GEN_OPIVV_WIDEN_TRANS_TH(th_vwredsum_vs, reduction_check_th)
+GEN_OPIVV_WIDEN_TRANS_TH(th_vwredsumu_vs, reduction_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vwredsumu_vs)
-TH_TRANS_STUB(th_vwredsum_vs)
 TH_TRANS_STUB(th_vfredsum_vs)
 TH_TRANS_STUB(th_vfredmin_vs)
 TH_TRANS_STUB(th_vfredmax_vs)
