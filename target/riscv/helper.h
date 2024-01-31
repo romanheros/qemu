@@ -2298,3 +2298,5 @@ DEF_HELPER_6(th_vmor_mm, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_6(th_vmnor_mm, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_6(th_vmornot_mm, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_6(th_vmxnor_mm, void, ptr, ptr, ptr, ptr, env, i32)
+
+DEF_HELPER_4(th_vmpopc_m, tl, ptr, ptr, env, i32)

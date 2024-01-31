@@ -3740,3 +3740,24 @@ GEN_TH_MASK_VV(th_vmor_mm, TH_OR)
 GEN_TH_MASK_VV(th_vmnor_mm, TH_NOR)
 GEN_TH_MASK_VV(th_vmornot_mm, TH_ORNOT)
 GEN_TH_MASK_VV(th_vmxnor_mm, TH_XNOR)
+
+/* Vector mask population count vmpopc */
+target_ulong HELPER(th_vmpopc_m)(void *v0, void *vs2, CPURISCVState *env,
+                              uint32_t desc)
+{
+    target_ulong cnt = 0;
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+    int i;
+
+    for (i = env->vstart; i < vl; i++) {
+        if (vm || th_elem_mask(v0, mlen, i)) {
+            if (th_elem_mask(vs2, mlen, i)) {
+                cnt++;
+            }
+        }
+    }
+    env->vstart = 0;
+    return cnt;
+}
