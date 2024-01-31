@@ -3634,3 +3634,52 @@ GEN_TH_RED(th_vwredsum_vs_w, int64_t, int32_t, H8, H4, TH_ADD, clearq_th)
 GEN_TH_RED(th_vwredsumu_vs_b, uint16_t, uint8_t, H2, H1, TH_ADD, clearh_th)
 GEN_TH_RED(th_vwredsumu_vs_h, uint32_t, uint16_t, H4, H2, TH_ADD, clearl_th)
 GEN_TH_RED(th_vwredsumu_vs_w, uint64_t, uint32_t, H8, H4, TH_ADD, clearq_th)
+
+/* Vector Single-Width Floating-Point Reduction Instructions */
+#define GEN_TH_FRED(NAME, TD, TS2, HD, HS2, OP, CLEAR_FN)  \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,           \
+                  void *vs2, CPURISCVState *env,           \
+                  uint32_t desc)                           \
+{                                                          \
+    uint32_t mlen = th_mlen(desc);                         \
+    uint32_t vm = th_vm(desc);                             \
+    uint32_t vl = env->vl;                                 \
+    uint32_t i;                                            \
+    uint32_t tot = env_archcpu(env)->cfg.vlen / 8;         \
+    TD s1 =  *((TD *)vs1 + HD(0));                         \
+                                                           \
+    for (i = env->vstart; i < vl; i++) {                   \
+        TS2 s2 = *((TS2 *)vs2 + HS2(i));                   \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {           \
+            continue;                                      \
+        }                                                  \
+        s1 = OP(s1, (TD)s2, &env->fp_status);              \
+    }                                                      \
+    *((TD *)vd + HD(0)) = s1;                              \
+    env->vstart = 0;                                       \
+    CLEAR_FN(vd, 1, sizeof(TD), tot);                      \
+}
+
+/* Unordered sum */
+GEN_TH_FRED(th_vfredsum_vs_h, uint16_t, uint16_t, H2, H2,
+            float16_add, clearh_th)
+GEN_TH_FRED(th_vfredsum_vs_w, uint32_t, uint32_t, H4, H4,
+            float32_add, clearl_th)
+GEN_TH_FRED(th_vfredsum_vs_d, uint64_t, uint64_t, H8, H8,
+            float64_add, clearq_th)
+
+/* Maximum value */
+GEN_TH_FRED(th_vfredmax_vs_h, uint16_t, uint16_t, H2, H2,
+            float16_maxnum, clearh_th)
+GEN_TH_FRED(th_vfredmax_vs_w, uint32_t, uint32_t, H4, H4,
+            float32_maxnum, clearl_th)
+GEN_TH_FRED(th_vfredmax_vs_d, uint64_t, uint64_t, H8, H8,
+            float64_maxnum, clearq_th)
+
+/* Minimum value */
+GEN_TH_FRED(th_vfredmin_vs_h, uint16_t, uint16_t, H2, H2,
+            float16_minnum, clearh_th)
+GEN_TH_FRED(th_vfredmin_vs_w, uint32_t, uint32_t, H4, H4,
+            float32_minnum, clearl_th)
+GEN_TH_FRED(th_vfredmin_vs_d, uint64_t, uint64_t, H8, H8,
+            float64_minnum, clearq_th)
