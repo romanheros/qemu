@@ -2590,13 +2590,42 @@ static bool trans_th_vmpopc_m(DisasContext *s, arg_rmr *a)
     return false;
 }
 
+/* vmfirst find-first-set mask bit */
+static bool trans_th_vmfirst_m(DisasContext *s, arg_rmr *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s)) {
+        TCGv_ptr src2, mask;
+        TCGv dst;
+        TCGv_i32 desc;
+        uint32_t data = 0;
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+
+        mask = tcg_temp_new_ptr();
+        src2 = tcg_temp_new_ptr();
+        dst = dest_gpr(s, a->rd);
+        desc = tcg_constant_i32(simd_desc(s->cfg_ptr->vlen / 8,
+                                          s->cfg_ptr->vlen / 8, data));
+
+        tcg_gen_addi_ptr(src2, tcg_env, vreg_ofs(s, a->rs2));
+        tcg_gen_addi_ptr(mask, tcg_env, vreg_ofs(s, 0));
+
+        gen_helper_th_vmfirst_m(dst, mask, src2, tcg_env, desc);
+        gen_set_gpr(s, a->rd, dst);
+
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmfirst_m)
 TH_TRANS_STUB(th_vmsbf_m)
 TH_TRANS_STUB(th_vmsif_m)
 TH_TRANS_STUB(th_vmsof_m)

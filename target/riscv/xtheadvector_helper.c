@@ -3761,3 +3761,23 @@ target_ulong HELPER(th_vmpopc_m)(void *v0, void *vs2, CPURISCVState *env,
     env->vstart = 0;
     return cnt;
 }
+
+/* vmfirst find-first-set mask bit*/
+target_ulong HELPER(th_vmfirst_m)(void *v0, void *vs2, CPURISCVState *env,
+                               uint32_t desc)
+{
+    uint32_t mlen = th_mlen(desc);
+    uint32_t vm = th_vm(desc);
+    uint32_t vl = env->vl;
+    int i;
+
+    for (i = env->vstart; i < vl; i++) {
+        if (vm || th_elem_mask(v0, mlen, i)) {
+            if (th_elem_mask(vs2, mlen, i)) {
+                return i;
+            }
+        }
+    }
+    env->vstart = 0;
+    return -1LL;
+}
