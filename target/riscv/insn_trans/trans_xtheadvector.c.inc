@@ -2945,13 +2945,92 @@ GEN_OPIVX_TRANS_TH(th_vslidedown_vx, opivx_check_th)
 GEN_OPIVX_TRANS_TH(th_vslide1down_vx, opivx_check_th)
 GEN_OPIVI_TRANS_TH(th_vslidedown_vi, IMM_ZX, th_vslidedown_vx, opivx_check_th)
 
+/* Vector Register Gather Instruction */
+static bool vrgather_vv_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs1, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            (a->rd != a->rs2) && (a->rd != a->rs1));
+}
+
+GEN_OPIVV_TRANS_TH(th_vrgather_vv, vrgather_vv_check_th)
+
+static bool vrgather_vx_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            (a->rd != a->rs2));
+}
+
+/* vrgather.vx vd, vs2, rs1, vm # vd[i] = (x[rs1] >= VLMAX) ? 0 : vs2[rs1] */
+static bool trans_th_vrgather_vx(DisasContext *s, arg_rmrr *a)
+{
+    if (!vrgather_vx_check_th(s, a)) {
+        return false;
+    }
+
+    if (a->vm && s->vl_eq_vlmax) {
+        int vlmax = s->cfg_ptr->vlen / s->mlen;
+        TCGv_i64 dest = tcg_temp_new_i64();
+
+        if (a->rs1 == 0) {
+            th_element_loadi(s, dest, a->rs2, 0);
+        } else {
+            th_element_loadx(s, dest, a->rs2, cpu_gpr[a->rs1], vlmax);
+        }
+
+        tcg_gen_gvec_dup_i64(s->sew, th_vreg_ofs(s, a->rd),
+                             MAXSZ_TH(s), MAXSZ_TH(s), dest);
+        mark_vs_dirty(s);
+    } else {
+        static gen_helper_opivx * const fns[4] = {
+            gen_helper_th_vrgather_vx_b, gen_helper_th_vrgather_vx_h,
+            gen_helper_th_vrgather_vx_w, gen_helper_th_vrgather_vx_d
+        };
+        return opivx_trans_th(a->rd, a->rs1, a->rs2, a->vm, fns[s->sew], s);
+    }
+    return true;
+}
+
+/* vrgather.vi vd, vs2, imm, vm # vd[i] = (imm >= VLMAX) ? 0 : vs2[imm] */
+static bool trans_th_vrgather_vi(DisasContext *s, arg_rmrr *a)
+{
+    if (!vrgather_vx_check_th(s, a)) {
+        return false;
+    }
+
+    if (a->vm && s->vl_eq_vlmax) {
+        if (a->rs1 >= s->cfg_ptr->vlen / s->mlen) {
+            tcg_gen_gvec_dup_imm(MO_64, th_vreg_ofs(s, a->rd),
+                                 MAXSZ_TH(s), MAXSZ_TH(s), 0);
+        } else {
+            tcg_gen_gvec_dup_mem(s->sew, th_vreg_ofs(s, a->rd),
+                                 endian_ofs(s, a->rs2, a->rs1),
+                                 MAXSZ_TH(s), MAXSZ_TH(s));
+        }
+        mark_vs_dirty(s);
+    } else {
+        static gen_helper_opivx * const fns[4] = {
+            gen_helper_th_vrgather_vx_b, gen_helper_th_vrgather_vx_h,
+            gen_helper_th_vrgather_vx_w, gen_helper_th_vrgather_vx_d
+        };
+        return opivi_trans_th(a->rd, a->rs1, a->rs2, a->vm, fns[s->sew],
+                              s, IMM_ZX);
+    }
+    return true;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vrgather_vv)
-TH_TRANS_STUB(th_vrgather_vx)
-TH_TRANS_STUB(th_vrgather_vi)
 TH_TRANS_STUB(th_vcompress_vm)
