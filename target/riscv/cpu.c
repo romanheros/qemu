@@ -506,7 +506,7 @@ static void rv64_thead_c906_cpu_init(Object *obj)
     cpu->cfg.ext_xtheadmemidx = true;
     cpu->cfg.ext_xtheadmempair = true;
     cpu->cfg.ext_xtheadsync = true;
-    cpu->cfg.ext_xtheadvector = false;
+    cpu->cfg.ext_xtheadvector = true;
 
     cpu->cfg.mvendorid = THEAD_VENDOR_ID;
 #ifndef CONFIG_USER_ONLY
