@@ -3548,3 +3548,78 @@ THCALL(TH_OPFVV1, th_vfncvt_f_f_v_h, TH_NOP_UU_H, H2, H4, vfncvtffv16)
 THCALL(TH_OPFVV1, th_vfncvt_f_f_v_w, TH_NOP_UU_W, H4, H8, float64_to_float32)
 GEN_TH_V_ENV(th_vfncvt_f_f_v_h, 2, 2, clearh_th)
 GEN_TH_V_ENV(th_vfncvt_f_f_v_w, 4, 4, clearl_th)
+
+/*
+ *** Vector Reduction Operations
+ */
+/* Vector Single-Width Integer Reduction Instructions */
+#define GEN_TH_RED(NAME, TD, TS2, HD, HS2, OP, CLEAR_FN)  \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,          \
+        void *vs2, CPURISCVState *env, uint32_t desc)     \
+{                                                         \
+    uint32_t mlen = th_mlen(desc);                        \
+    uint32_t vm = th_vm(desc);                            \
+    uint32_t vl = env->vl;                                \
+    uint32_t i;                                           \
+    uint32_t tot = env_archcpu(env)->cfg.vlen / 8;        \
+    TD s1 =  *((TD *)vs1 + HD(0));                        \
+                                                          \
+    for (i = env->vstart; i < vl; i++) {                  \
+        TS2 s2 = *((TS2 *)vs2 + HS2(i));                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {          \
+            continue;                                     \
+        }                                                 \
+        s1 = OP(s1, (TD)s2);                              \
+    }                                                     \
+    *((TD *)vd + HD(0)) = s1;                             \
+    env->vstart = 0;                                      \
+    CLEAR_FN(vd, 1, sizeof(TD), tot);                     \
+}
+
+/* vd[0] = sum(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredsum_vs_b, int8_t, int8_t, H1, H1, TH_ADD, clearb_th)
+GEN_TH_RED(th_vredsum_vs_h, int16_t, int16_t, H2, H2, TH_ADD, clearh_th)
+GEN_TH_RED(th_vredsum_vs_w, int32_t, int32_t, H4, H4, TH_ADD, clearl_th)
+GEN_TH_RED(th_vredsum_vs_d, int64_t, int64_t, H8, H8, TH_ADD, clearq_th)
+
+/* vd[0] = maxu(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredmaxu_vs_b, uint8_t, uint8_t, H1, H1, TH_MAX, clearb_th)
+GEN_TH_RED(th_vredmaxu_vs_h, uint16_t, uint16_t, H2, H2, TH_MAX, clearh_th)
+GEN_TH_RED(th_vredmaxu_vs_w, uint32_t, uint32_t, H4, H4, TH_MAX, clearl_th)
+GEN_TH_RED(th_vredmaxu_vs_d, uint64_t, uint64_t, H8, H8, TH_MAX, clearq_th)
+
+/* vd[0] = max(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredmax_vs_b, int8_t, int8_t, H1, H1, TH_MAX, clearb_th)
+GEN_TH_RED(th_vredmax_vs_h, int16_t, int16_t, H2, H2, TH_MAX, clearh_th)
+GEN_TH_RED(th_vredmax_vs_w, int32_t, int32_t, H4, H4, TH_MAX, clearl_th)
+GEN_TH_RED(th_vredmax_vs_d, int64_t, int64_t, H8, H8, TH_MAX, clearq_th)
+
+/* vd[0] = minu(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredminu_vs_b, uint8_t, uint8_t, H1, H1, TH_MIN, clearb_th)
+GEN_TH_RED(th_vredminu_vs_h, uint16_t, uint16_t, H2, H2, TH_MIN, clearh_th)
+GEN_TH_RED(th_vredminu_vs_w, uint32_t, uint32_t, H4, H4, TH_MIN, clearl_th)
+GEN_TH_RED(th_vredminu_vs_d, uint64_t, uint64_t, H8, H8, TH_MIN, clearq_th)
+
+/* vd[0] = min(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredmin_vs_b, int8_t, int8_t, H1, H1, TH_MIN, clearb_th)
+GEN_TH_RED(th_vredmin_vs_h, int16_t, int16_t, H2, H2, TH_MIN, clearh_th)
+GEN_TH_RED(th_vredmin_vs_w, int32_t, int32_t, H4, H4, TH_MIN, clearl_th)
+GEN_TH_RED(th_vredmin_vs_d, int64_t, int64_t, H8, H8, TH_MIN, clearq_th)
+
+/* vd[0] = and(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredand_vs_b, int8_t, int8_t, H1, H1, TH_AND, clearb_th)
+GEN_TH_RED(th_vredand_vs_h, int16_t, int16_t, H2, H2, TH_AND, clearh_th)
+GEN_TH_RED(th_vredand_vs_w, int32_t, int32_t, H4, H4, TH_AND, clearl_th)
+GEN_TH_RED(th_vredand_vs_d, int64_t, int64_t, H8, H8, TH_AND, clearq_th)
+
+/* vd[0] = or(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredor_vs_b, int8_t, int8_t, H1, H1, TH_OR, clearb_th)
+GEN_TH_RED(th_vredor_vs_h, int16_t, int16_t, H2, H2, TH_OR, clearh_th)
+GEN_TH_RED(th_vredor_vs_w, int32_t, int32_t, H4, H4, TH_OR, clearl_th)
+GEN_TH_RED(th_vredor_vs_d, int64_t, int64_t, H8, H8, TH_OR, clearq_th)
+
+/* vd[0] = xor(vs1[0], vs2[*]) */
+GEN_TH_RED(th_vredxor_vs_b, int8_t, int8_t, H1, H1, TH_XOR, clearb_th)
+GEN_TH_RED(th_vredxor_vs_h, int16_t, int16_t, H2, H2, TH_XOR, clearh_th)
+GEN_TH_RED(th_vredxor_vs_w, int32_t, int32_t, H4, H4, TH_XOR, clearl_th)
+GEN_TH_RED(th_vredxor_vs_d, int64_t, int64_t, H8, H8, TH_XOR, clearq_th)

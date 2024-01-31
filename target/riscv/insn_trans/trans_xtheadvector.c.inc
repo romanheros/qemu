@@ -2491,20 +2491,30 @@ GEN_OPFV_NARROW_TRANS_TH(th_vfncvt_f_xu_v)
 GEN_OPFV_NARROW_TRANS_TH(th_vfncvt_f_x_v)
 GEN_OPFV_NARROW_TRANS_TH(th_vfncvt_f_f_v)
 
+/*
+ *** Vector Reduction Operations
+ */
+/* Vector Single-Width Integer Reduction Instructions */
+static bool reduction_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return th_check_isa_ill(s) && th_check_reg(s, a->rs2, false);
+}
+
+GEN_OPIVV_TRANS_TH(th_vredsum_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredmaxu_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredmax_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredminu_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredmin_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredand_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredor_vs, reduction_check_th)
+GEN_OPIVV_TRANS_TH(th_vredxor_vs, reduction_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vredsum_vs)
-TH_TRANS_STUB(th_vredand_vs)
-TH_TRANS_STUB(th_vredor_vs)
-TH_TRANS_STUB(th_vredxor_vs)
-TH_TRANS_STUB(th_vredminu_vs)
-TH_TRANS_STUB(th_vredmin_vs)
-TH_TRANS_STUB(th_vredmaxu_vs)
-TH_TRANS_STUB(th_vredmax_vs)
 TH_TRANS_STUB(th_vwredsumu_vs)
 TH_TRANS_STUB(th_vwredsum_vs)
 TH_TRANS_STUB(th_vfredsum_vs)
