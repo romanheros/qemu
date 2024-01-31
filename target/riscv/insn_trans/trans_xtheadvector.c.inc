@@ -2926,18 +2926,31 @@ static bool trans_th_vfmv_s_f(DisasContext *s, arg_th_vfmv_s_f *a)
     return false;
 }
 
+/* Vector Slide Instructions */
+static bool slideup_check_th(DisasContext *s, arg_rmrr *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_overlap_mask(s, a->rd, a->vm, true) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            (a->rd != a->rs2));
+}
+
+GEN_OPIVX_TRANS_TH(th_vslideup_vx, slideup_check_th)
+GEN_OPIVX_TRANS_TH(th_vslide1up_vx, slideup_check_th)
+GEN_OPIVI_TRANS_TH(th_vslideup_vi, IMM_ZX, th_vslideup_vx, slideup_check_th)
+
+GEN_OPIVX_TRANS_TH(th_vslidedown_vx, opivx_check_th)
+GEN_OPIVX_TRANS_TH(th_vslide1down_vx, opivx_check_th)
+GEN_OPIVI_TRANS_TH(th_vslidedown_vi, IMM_ZX, th_vslidedown_vx, opivx_check_th)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vslideup_vx)
-TH_TRANS_STUB(th_vslideup_vi)
-TH_TRANS_STUB(th_vslide1up_vx)
-TH_TRANS_STUB(th_vslidedown_vx)
-TH_TRANS_STUB(th_vslidedown_vi)
-TH_TRANS_STUB(th_vslide1down_vx)
 TH_TRANS_STUB(th_vrgather_vv)
 TH_TRANS_STUB(th_vrgather_vx)
 TH_TRANS_STUB(th_vrgather_vi)

@@ -3900,3 +3900,121 @@ GEN_TH_VID_V(th_vid_v_b, uint8_t, H1, clearb_th)
 GEN_TH_VID_V(th_vid_v_h, uint16_t, H2, clearh_th)
 GEN_TH_VID_V(th_vid_v_w, uint32_t, H4, clearl_th)
 GEN_TH_VID_V(th_vid_v_d, uint64_t, H8, clearq_th)
+
+/*
+ *** Vector Permutation Instructions
+ */
+
+/* Vector Slide Instructions */
+#define GEN_TH_VSLIDEUP_VX(NAME, ETYPE, H, CLEAR_FN)                      \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,         \
+                  CPURISCVState *env, uint32_t desc)                      \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    target_ulong offset = s1, i_min, i;                                   \
+                                                                          \
+    i_min = MAX(env->vstart, offset);                                     \
+    for (i = i_min; i < vl; i++) {                                        \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        *((ETYPE *)vd + H(i)) = *((ETYPE *)vs2 + H(i - offset));          \
+    }                                                                     \
+    CLEAR_FN(vd, vl, vl * sizeof(ETYPE), vlmax * sizeof(ETYPE));          \
+}
+
+/* vslideup.vx vd, vs2, rs1, vm # vd[i+rs1] = vs2[i] */
+GEN_TH_VSLIDEUP_VX(th_vslideup_vx_b, uint8_t, H1, clearb_th)
+GEN_TH_VSLIDEUP_VX(th_vslideup_vx_h, uint16_t, H2, clearh_th)
+GEN_TH_VSLIDEUP_VX(th_vslideup_vx_w, uint32_t, H4, clearl_th)
+GEN_TH_VSLIDEUP_VX(th_vslideup_vx_d, uint64_t, H8, clearq_th)
+
+#define GEN_TH_VSLIDEDOWN_VX(NAME, ETYPE, H, CLEAR_FN)                    \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,         \
+                  CPURISCVState *env, uint32_t desc)                      \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    target_ulong offset = s1, i;                                          \
+                                                                          \
+    for (i = env->vstart; i < vl; ++i) {                                  \
+        target_ulong j = i + offset;                                      \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        *((ETYPE *)vd + H(i)) = j >= vlmax ? 0 : *((ETYPE *)vs2 + H(j));  \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, vl, vl * sizeof(ETYPE), vlmax * sizeof(ETYPE));          \
+}
+
+/* vslidedown.vx vd, vs2, rs1, vm # vd[i] = vs2[i+rs1] */
+GEN_TH_VSLIDEDOWN_VX(th_vslidedown_vx_b, uint8_t, H1, clearb_th)
+GEN_TH_VSLIDEDOWN_VX(th_vslidedown_vx_h, uint16_t, H2, clearh_th)
+GEN_TH_VSLIDEDOWN_VX(th_vslidedown_vx_w, uint32_t, H4, clearl_th)
+GEN_TH_VSLIDEDOWN_VX(th_vslidedown_vx_d, uint64_t, H8, clearq_th)
+
+#define GEN_TH_VSLIDE1UP_VX(NAME, ETYPE, H, CLEAR_FN)                     \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,         \
+                  CPURISCVState *env, uint32_t desc)                      \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    uint32_t i;                                                           \
+                                                                          \
+    for (i = env->vstart; i < vl; i++) {                                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        if (i == 0) {                                                     \
+            *((ETYPE *)vd + H(i)) = s1;                                   \
+        } else {                                                          \
+            *((ETYPE *)vd + H(i)) = *((ETYPE *)vs2 + H(i - 1));           \
+        }                                                                 \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, vl, vl * sizeof(ETYPE), vlmax * sizeof(ETYPE));          \
+}
+
+/* vslide1up.vx vd, vs2, rs1, vm # vd[0]=x[rs1], vd[i+1] = vs2[i] */
+GEN_TH_VSLIDE1UP_VX(th_vslide1up_vx_b, uint8_t, H1, clearb_th)
+GEN_TH_VSLIDE1UP_VX(th_vslide1up_vx_h, uint16_t, H2, clearh_th)
+GEN_TH_VSLIDE1UP_VX(th_vslide1up_vx_w, uint32_t, H4, clearl_th)
+GEN_TH_VSLIDE1UP_VX(th_vslide1up_vx_d, uint64_t, H8, clearq_th)
+
+#define GEN_TH_VSLIDE1DOWN_VX(NAME, ETYPE, H, CLEAR_FN)                   \
+void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,         \
+                  CPURISCVState *env, uint32_t desc)                      \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    uint32_t i;                                                           \
+                                                                          \
+    for (i = env->vstart; i < vl; i++) {                                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        if (i == vl - 1) {                                                \
+            *((ETYPE *)vd + H(i)) = s1;                                   \
+        } else {                                                          \
+            *((ETYPE *)vd + H(i)) = *((ETYPE *)vs2 + H(i + 1));           \
+        }                                                                 \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, vl, vl * sizeof(ETYPE), vlmax * sizeof(ETYPE));          \
+}
+
+/* vslide1down.vx vd, vs2, rs1, vm # vd[i] = vs2[i+1], vd[vl-1]=x[rs1] */
+GEN_TH_VSLIDE1DOWN_VX(th_vslide1down_vx_b, uint8_t, H1, clearb_th)
+GEN_TH_VSLIDE1DOWN_VX(th_vslide1down_vx_h, uint16_t, H2, clearh_th)
+GEN_TH_VSLIDE1DOWN_VX(th_vslide1down_vx_w, uint32_t, H4, clearl_th)
+GEN_TH_VSLIDE1DOWN_VX(th_vslide1down_vx_d, uint64_t, H8, clearq_th)
