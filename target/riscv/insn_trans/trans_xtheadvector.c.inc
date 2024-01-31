@@ -2873,14 +2873,65 @@ static bool trans_th_vmv_s_x(DisasContext *s, arg_th_vmv_s_x *a)
     return false;
 }
 
+/* Floating-Point Scalar Move Instructions */
+static bool trans_th_vfmv_f_s(DisasContext *s, arg_th_vfmv_f_s *a)
+{
+    if (require_thv(s) &&
+        !s->vill && has_ext(s, RVF) &&
+        (s->mstatus_fs != 0) &&
+        (s->sew != 0)) {
+        unsigned int len = 8 << s->sew;
+
+        th_element_loadi(s, cpu_fpr[a->rd], a->rs2, 0);
+        if (len < 64) {
+            tcg_gen_ori_i64(cpu_fpr[a->rd], cpu_fpr[a->rd],
+                            MAKE_64BIT_MASK(len, 64 - len));
+        }
+
+        mark_fs_dirty(s);
+        return true;
+    }
+    return false;
+}
+
+/* vfmv.s.f vd, rs1 # vd[0] = rs1 (vs2=0) */
+static bool trans_th_vfmv_s_f(DisasContext *s, arg_th_vfmv_s_f *a)
+{
+    if (require_thv(s) &&
+        !s->vill && has_ext(s, RVF) &&
+        (s->sew != 0)) {
+        TCGv_i64 t1;
+        /* The instructions ignore LMUL and vector register group. */
+        uint32_t vlmax = s->cfg_ptr->vlen >> 3;
+
+        /* if vl == 0, skip vector register write back */
+        TCGLabel *over = gen_new_label();
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+        /* zeroed all elements */
+        tcg_gen_gvec_dup_imm(MO_64, th_vreg_ofs(s, a->rd), vlmax, vlmax, 0);
+
+        /* NaN-box f[rs1] as necessary for SEW */
+        t1 = tcg_temp_new_i64();
+        if (s->sew == MO_64 && !has_ext(s, RVD)) {
+            tcg_gen_ori_i64(t1, cpu_fpr[a->rs1], MAKE_64BIT_MASK(32, 32));
+        } else {
+            tcg_gen_mov_i64(t1, cpu_fpr[a->rs1]);
+        }
+        th_element_storei(s, a->rd, 0, t1);
+        mark_vs_dirty(s);
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vfmv_f_s)
-TH_TRANS_STUB(th_vfmv_s_f)
 TH_TRANS_STUB(th_vslideup_vx)
 TH_TRANS_STUB(th_vslideup_vi)
 TH_TRANS_STUB(th_vslide1up_vx)
