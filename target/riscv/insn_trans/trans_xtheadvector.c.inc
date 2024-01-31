@@ -3027,10 +3027,39 @@ static bool trans_th_vrgather_vi(DisasContext *s, arg_rmrr *a)
     return true;
 }
 
-#define TH_TRANS_STUB(NAME)                                \
-static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
-{                                                          \
-    return require_thv(s);                                 \
+/* Vector Compress Instruction */
+static bool vcompress_vm_check_th(DisasContext *s, arg_r *a)
+{
+    return (require_thv(s) &&
+            th_check_isa_ill(s) &&
+            th_check_reg(s, a->rd, false) &&
+            th_check_reg(s, a->rs2, false) &&
+            th_check_overlap_group(a->rd, 1 << s->lmul, a->rs1, 1) &&
+            (a->rd != a->rs2)) &&
+            s->vstart_eq_zero;
 }
 
-TH_TRANS_STUB(th_vcompress_vm)
+static bool trans_th_vcompress_vm(DisasContext *s, arg_r *a)
+{
+    if (vcompress_vm_check_th(s, a)) {
+        uint32_t data = 0;
+        static gen_helper_gvec_4_ptr * const fns[4] = {
+            gen_helper_th_vcompress_vm_b, gen_helper_th_vcompress_vm_h,
+            gen_helper_th_vcompress_vm_w, gen_helper_th_vcompress_vm_d,
+        };
+        TCGLabel *over = gen_new_label();
+        tcg_gen_brcondi_tl(TCG_COND_EQ, cpu_vl, 0, over);
+
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, 0),
+                           th_vreg_ofs(s, a->rs1), th_vreg_ofs(s, a->rs2),
+                           tcg_env, s->cfg_ptr->vlen / 8,
+                           s->cfg_ptr->vlen / 8, data,
+                           fns[s->sew]);
+        mark_vs_dirty(s);
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}

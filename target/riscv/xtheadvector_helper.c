@@ -4080,3 +4080,30 @@ GEN_TH_VRGATHER_VX(th_vrgather_vx_b, uint8_t, H1, clearb_th)
 GEN_TH_VRGATHER_VX(th_vrgather_vx_h, uint16_t, H2, clearh_th)
 GEN_TH_VRGATHER_VX(th_vrgather_vx_w, uint32_t, H4, clearl_th)
 GEN_TH_VRGATHER_VX(th_vrgather_vx_d, uint64_t, H8, clearq_th)
+
+/* Vector Compress Instruction */
+#define GEN_TH_VCOMPRESS_VM(NAME, ETYPE, H, CLEAR_FN)                     \
+void HELPER(NAME)(void *vd, void *v0, void *vs1, void *vs2,               \
+                  CPURISCVState *env, uint32_t desc)                      \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vl = env->vl;                                                \
+    uint32_t num = 0, i;                                                  \
+                                                                          \
+    for (i = env->vstart; i < vl; i++) {                                  \
+        if (!th_elem_mask(vs1, mlen, i)) {                                \
+            continue;                                                     \
+        }                                                                 \
+        *((ETYPE *)vd + H(num)) = *((ETYPE *)vs2 + H(i));                 \
+        num++;                                                            \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, num, num * sizeof(ETYPE), vlmax * sizeof(ETYPE));        \
+}
+
+/* Compress into vd elements of vs2 where vs1 is enabled */
+GEN_TH_VCOMPRESS_VM(th_vcompress_vm_b, uint8_t, H1, clearb_th)
+GEN_TH_VCOMPRESS_VM(th_vcompress_vm_h, uint16_t, H2, clearh_th)
+GEN_TH_VCOMPRESS_VM(th_vcompress_vm_w, uint32_t, H4, clearl_th)
+GEN_TH_VCOMPRESS_VM(th_vcompress_vm_d, uint64_t, H8, clearq_th)
