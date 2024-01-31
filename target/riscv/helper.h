@@ -2289,3 +2289,12 @@ DEF_HELPER_6(th_vfredmin_vs_d, void, ptr, ptr, ptr, ptr, env, i32)
 
 DEF_HELPER_6(th_vfwredsum_vs_h, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_6(th_vfwredsum_vs_w, void, ptr, ptr, ptr, ptr, env, i32)
+
+DEF_HELPER_6(th_vmand_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmnand_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmandnot_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmxor_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmor_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmnor_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmornot_mm, void, ptr, ptr, ptr, ptr, env, i32)
+DEF_HELPER_6(th_vmxnor_mm, void, ptr, ptr, ptr, ptr, env, i32)

@@ -3699,3 +3699,44 @@ static uint64_t fwadd32(uint64_t a, uint32_t b, float_status *s)
 /* Unordered reduce 2*SEW = 2*SEW + sum(promote(SEW)) */
 GEN_TH_FRED(th_vfwredsum_vs_h, uint32_t, uint16_t, H4, H2, fwadd16, clearl_th)
 GEN_TH_FRED(th_vfwredsum_vs_w, uint64_t, uint32_t, H8, H4, fwadd32, clearq_th)
+
+/*
+ *** Vector Mask Operations
+ */
+/* Vector Mask-Register Logical Instructions */
+#define GEN_TH_MASK_VV(NAME, OP)                          \
+void HELPER(NAME)(void *vd, void *v0, void *vs1,          \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
+{                                                         \
+    uint32_t mlen = th_mlen(desc);                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;   \
+    uint32_t vl = env->vl;                                \
+    uint32_t i;                                           \
+    int a, b;                                             \
+                                                          \
+    for (i = env->vstart; i < vl; i++) {                  \
+        a = th_elem_mask(vs1, mlen, i);                   \
+        b = th_elem_mask(vs2, mlen, i);                   \
+        th_set_elem_mask(vd, mlen, i, OP(b, a));          \
+    }                                                     \
+    env->vstart = 0;                                      \
+    for (; i < vlmax; i++) {                              \
+        th_set_elem_mask(vd, mlen, i, 0);                 \
+    }                                                     \
+}
+
+#define TH_NAND(N, M)  (!(N & M))
+#define TH_ANDNOT(N, M)  (N & !M)
+#define TH_NOR(N, M)  (!(N | M))
+#define TH_ORNOT(N, M)  (N | !M)
+#define TH_XNOR(N, M)  (!(N ^ M))
+
+GEN_TH_MASK_VV(th_vmand_mm, TH_AND)
+GEN_TH_MASK_VV(th_vmnand_mm, TH_NAND)
+GEN_TH_MASK_VV(th_vmandnot_mm, TH_ANDNOT)
+GEN_TH_MASK_VV(th_vmxor_mm, TH_XOR)
+GEN_TH_MASK_VV(th_vmor_mm, TH_OR)
+GEN_TH_MASK_VV(th_vmnor_mm, TH_NOR)
+GEN_TH_MASK_VV(th_vmornot_mm, TH_ORNOT)
+GEN_TH_MASK_VV(th_vmxnor_mm, TH_XNOR)

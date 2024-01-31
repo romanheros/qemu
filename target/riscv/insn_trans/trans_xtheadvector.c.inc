@@ -2521,20 +2521,51 @@ GEN_OPFVV_TRANS_TH(th_vfredmin_vs, reduction_check_th)
 /* Vector Widening Floating-Point Reduction Instructions */
 GEN_OPFVV_WIDEN_TRANS_TH(th_vfwredsum_vs, reduction_check_th)
 
+/*
+ *** Vector Mask Operations
+ */
+
+/* Vector Mask-Register Logical Instructions */
+#define GEN_MM_TRANS_TH(NAME)                                      \
+static bool trans_##NAME(DisasContext *s, arg_r *a)                \
+{                                                                  \
+    if (require_thv(s) &&                                          \
+        th_check_isa_ill(s)) {                                     \
+        uint32_t data = 0;                                         \
+        gen_helper_gvec_4_ptr *fn = gen_helper_##NAME;             \
+        TCGLabel *over = gen_new_label();                          \
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over); \
+                                                                   \
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);          \
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);          \
+        tcg_gen_gvec_4_ptr(th_vreg_ofs(s, a->rd),                  \
+                           th_vreg_ofs(s, 0),                      \
+                           th_vreg_ofs(s, a->rs1),                 \
+                           th_vreg_ofs(s, a->rs2), tcg_env,        \
+                           s->cfg_ptr->vlen / 8,                   \
+                           s->cfg_ptr->vlen / 8, data, fn);        \
+        mark_vs_dirty(s);                                          \
+        gen_set_label(over);                                       \
+        return true;                                               \
+    }                                                              \
+    return false;                                                  \
+}
+
+GEN_MM_TRANS_TH(th_vmand_mm)
+GEN_MM_TRANS_TH(th_vmnand_mm)
+GEN_MM_TRANS_TH(th_vmandnot_mm)
+GEN_MM_TRANS_TH(th_vmxor_mm)
+GEN_MM_TRANS_TH(th_vmor_mm)
+GEN_MM_TRANS_TH(th_vmnor_mm)
+GEN_MM_TRANS_TH(th_vmornot_mm)
+GEN_MM_TRANS_TH(th_vmxnor_mm)
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vmand_mm)
-TH_TRANS_STUB(th_vmnand_mm)
-TH_TRANS_STUB(th_vmandnot_mm)
-TH_TRANS_STUB(th_vmxor_mm)
-TH_TRANS_STUB(th_vmor_mm)
-TH_TRANS_STUB(th_vmnor_mm)
-TH_TRANS_STUB(th_vmornot_mm)
-TH_TRANS_STUB(th_vmxnor_mm)
 TH_TRANS_STUB(th_vmpopc_m)
 TH_TRANS_STUB(th_vmfirst_m)
 TH_TRANS_STUB(th_vmsbf_m)
