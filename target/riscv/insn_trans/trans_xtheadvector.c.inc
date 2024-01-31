@@ -2715,14 +2715,170 @@ static bool trans_th_vid_v(DisasContext *s, arg_th_vid_v *a)
     return false;
 }
 
+/*
+ *** Vector Permutation Instructions
+ */
+
+/* Integer Extract Instruction */
+/*
+ * This function is almost the copy of load_element, except:
+ * 1) When SEW < XLEN, XTheadVector zero-extend the value, while
+ *    RVV1.0 sign-extend the value.
+ */
+static void load_element_th(TCGv_i64 dest, TCGv_ptr base,
+                            int ofs, int sew)
+{
+    switch (sew) {
+    case MO_8:
+        tcg_gen_ld8u_i64(dest, base, ofs);
+        break;
+    case MO_16:
+        tcg_gen_ld16u_i64(dest, base, ofs);
+        break;
+    case MO_32:
+        tcg_gen_ld32u_i64(dest, base, ofs);
+        break;
+    case MO_64:
+        tcg_gen_ld_i64(dest, base, ofs);
+        break;
+    default:
+        g_assert_not_reached();
+        break;
+    }
+}
+/* offset of the idx element with base register r */
+static uint32_t th_endian_ofs(DisasContext *s, int r, int idx)
+{
+    return endian_ofs(s, r, idx);
+}
+
+/* adjust the index according to the endian */
+static void endian_adjust_th(TCGv_i32 ofs, int sew)
+{
+    endian_adjust(ofs, sew);
+}
+/* Load idx >= VLMAX ? 0 : vreg[idx] */
+static void th_element_loadx(DisasContext *s, TCGv_i64 dest,
+                              int vreg, TCGv idx, int vlmax)
+{
+    TCGv_i32 ofs = tcg_temp_new_i32();
+    TCGv_ptr base = tcg_temp_new_ptr();
+    TCGv_i64 t_idx = tcg_temp_new_i64();
+    TCGv_i64 t_vlmax, t_zero;
+
+    /*
+     * Mask the index to the length so that we do
+     * not produce an out-of-range load.
+     */
+    tcg_gen_trunc_tl_i32(ofs, idx);
+    tcg_gen_andi_i32(ofs, ofs, vlmax - 1);
+
+    /* Convert the index to an offset. */
+    endian_adjust_th(ofs, s->sew);
+    tcg_gen_shli_i32(ofs, ofs, s->sew);
+
+    /* Convert the index to a pointer. */
+    tcg_gen_ext_i32_ptr(base, ofs);
+    tcg_gen_add_ptr(base, base, tcg_env);
+
+    /* Perform the load. */
+    load_element_th(dest, base,
+                    th_vreg_ofs(s, vreg), s->sew);
+
+    /* Flush out-of-range indexing to zero.  */
+    t_vlmax = tcg_constant_i64(vlmax);
+    t_zero = tcg_constant_i64(0);
+    tcg_gen_extu_tl_i64(t_idx, idx);
+
+    tcg_gen_movcond_i64(TCG_COND_LTU, dest, t_idx,
+                        t_vlmax, dest, t_zero);
+
+}
+/*
+ * This function is almost the copy of vec_element_loadi, except
+ * we just change the function name to decouple and delete the
+ * unused parameter.
+ * We delete the arg "bool sign", because XTheadVector always
+ * zero-extend the value.
+ */
+static void th_element_loadi(DisasContext *s, TCGv_i64 dest,
+                              int vreg, int idx)
+{
+    load_element_th(dest, tcg_env, th_endian_ofs(s, vreg, idx), s->sew);
+}
+
+/* Integer Scalar Move Instruction */
+/*
+ * Compared to trans_vmv_x_s, th.vext.x.v can transfer any element
+ * in a vector register to a general register, while vmv.x.s can only
+ * transfer the first element in a vector register to a general register.
+ *
+ * So we use th_element_loadx to load the element. And we use th_element_loadi
+ * to deal with the special case when rs1 == 0, to accelerate.
+ */
+static bool trans_th_vext_x_v(DisasContext *s, arg_r *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s)) {
+        TCGv_i64 tmp = tcg_temp_new_i64();
+        TCGv dest = dest_gpr(s, a->rd);
+
+        if (a->rs1 == 0) {
+            /* Special case vmv.x.s rd, vs2. */
+            th_element_loadi(s, tmp, a->rs2, 0);
+        } else {
+            /* This instruction ignores LMUL and vector register groups */
+            int vlmax = s->cfg_ptr->vlen >> (3 + s->sew);
+            th_element_loadx(s, tmp, a->rs2, cpu_gpr[a->rs1], vlmax);
+        }
+
+        tcg_gen_trunc_i64_tl(dest, tmp);
+        gen_set_gpr(s, a->rd, dest);
+
+    return true;
+    }
+    return false;
+}
+
+static void th_element_storei(DisasContext *s, int vreg,
+                              int idx, TCGv_i64 val)
+{
+    vec_element_storei(s, vreg, idx, val);
+}
+/* vmv.s.x vd, rs1 # vd[0] = rs1 */
+static bool trans_th_vmv_s_x(DisasContext *s, arg_th_vmv_s_x *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s)) {
+        /* This instruction ignores LMUL and vector register groups */
+        int maxsz = s->cfg_ptr->vlen >> 3;
+        TCGv_i64 t1;
+        TCGLabel *over = gen_new_label();
+        TCGv src1 = get_gpr(s, a->rs1, EXT_ZERO);
+
+
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+        tcg_gen_gvec_dup_imm(MO_64, th_vreg_ofs(s, a->rd), maxsz, maxsz, 0);
+        if (a->rs1 == 0) {
+            goto done;
+        }
+
+        t1 = tcg_temp_new_i64();
+        tcg_gen_extu_tl_i64(t1, src1);
+        th_element_storei(s, a->rd, 0, t1);
+    done:
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vext_x_v)
-TH_TRANS_STUB(th_vmv_s_x)
 TH_TRANS_STUB(th_vfmv_f_s)
 TH_TRANS_STUB(th_vfmv_s_f)
 TH_TRANS_STUB(th_vslideup_vx)
