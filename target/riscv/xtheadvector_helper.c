@@ -3845,3 +3845,33 @@ void HELPER(th_vmsof_m)(void *vd, void *v0, void *vs2, CPURISCVState *env,
 {
     vmsetm(vd, v0, vs2, env, desc, ONLY_FIRST);
 }
+
+/* Vector Iota Instruction */
+#define GEN_TH_VIOTA_M(NAME, ETYPE, H, CLEAR_FN)                          \
+void HELPER(NAME)(void *vd, void *v0, void *vs2, CPURISCVState *env,      \
+                  uint32_t desc)                                          \
+{                                                                         \
+    uint32_t mlen = th_mlen(desc);                                        \
+    uint32_t vlmax = env_archcpu(env)->cfg.vlen / mlen;                   \
+    uint32_t vm = th_vm(desc);                                            \
+    uint32_t vl = env->vl;                                                \
+    uint32_t sum = 0;                                                     \
+    int i;                                                                \
+                                                                          \
+    for (i = env->vstart; i < vl; i++) {                                  \
+        if (!vm && !th_elem_mask(v0, mlen, i)) {                          \
+            continue;                                                     \
+        }                                                                 \
+        *((ETYPE *)vd + H(i)) = sum;                                      \
+        if (th_elem_mask(vs2, mlen, i)) {                                 \
+            sum++;                                                        \
+        }                                                                 \
+    }                                                                     \
+    env->vstart = 0;                                                      \
+    CLEAR_FN(vd, vl, vl * sizeof(ETYPE), vlmax * sizeof(ETYPE));          \
+}
+
+GEN_TH_VIOTA_M(th_viota_m_b, uint8_t, H1, clearb_th)
+GEN_TH_VIOTA_M(th_viota_m_h, uint16_t, H2, clearh_th)
+GEN_TH_VIOTA_M(th_viota_m_w, uint32_t, H4, clearl_th)
+GEN_TH_VIOTA_M(th_viota_m_d, uint64_t, H8, clearq_th)

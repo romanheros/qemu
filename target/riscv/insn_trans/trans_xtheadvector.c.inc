@@ -2655,13 +2655,43 @@ GEN_M_TRANS_TH(th_vmsbf_m)
 GEN_M_TRANS_TH(th_vmsif_m)
 GEN_M_TRANS_TH(th_vmsof_m)
 
+/* Vector Iota Instruction */
+static bool trans_th_viota_m(DisasContext *s, arg_th_viota_m *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false) &&
+        th_check_overlap_group(a->rd, 1 << s->lmul, a->rs2, 1) &&
+        (a->vm != 0 || a->rd != 0) &&
+        s->vstart_eq_zero) {
+        uint32_t data = 0;
+        TCGLabel *over = gen_new_label();
+        tcg_gen_brcondi_tl(TCG_COND_EQ, cpu_vl, 0, over);
+
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+        static gen_helper_gvec_3_ptr * const fns[4] = {
+            gen_helper_th_viota_m_b, gen_helper_th_viota_m_h,
+            gen_helper_th_viota_m_w, gen_helper_th_viota_m_d,
+        };
+        tcg_gen_gvec_3_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, 0),
+                           th_vreg_ofs(s, a->rs2), tcg_env,
+                           s->cfg_ptr->vlen / 8,
+                           s->cfg_ptr->vlen / 8, data, fns[s->sew]);
+        mark_vs_dirty(s);
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_viota_m)
 TH_TRANS_STUB(th_vid_v)
 TH_TRANS_STUB(th_vext_x_v)
 TH_TRANS_STUB(th_vmv_s_x)
