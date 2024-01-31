@@ -2686,13 +2686,41 @@ static bool trans_th_viota_m(DisasContext *s, arg_th_viota_m *a)
     return false;
 }
 
+/* Vector Element Index Instruction */
+static bool trans_th_vid_v(DisasContext *s, arg_th_vid_v *a)
+{
+    if (require_thv(s) &&
+        th_check_isa_ill(s) &&
+        th_check_reg(s, a->rd, false) &&
+        th_check_overlap_mask(s, a->rd, a->vm, false)) {
+        uint32_t data = 0;
+        TCGLabel *over = gen_new_label();
+        tcg_gen_brcond_tl(TCG_COND_GEU, cpu_vstart, cpu_vl, over);
+
+        data = FIELD_DP32(data, VDATA_TH, MLEN, s->mlen);
+        data = FIELD_DP32(data, VDATA_TH, VM, a->vm);
+        data = FIELD_DP32(data, VDATA_TH, LMUL, s->lmul);
+        static gen_helper_gvec_2_ptr * const fns[4] = {
+            gen_helper_th_vid_v_b, gen_helper_th_vid_v_h,
+            gen_helper_th_vid_v_w, gen_helper_th_vid_v_d,
+        };
+        tcg_gen_gvec_2_ptr(th_vreg_ofs(s, a->rd), th_vreg_ofs(s, 0),
+                           tcg_env, s->cfg_ptr->vlen / 8,
+                           s->cfg_ptr->vlen / 8,
+                           data, fns[s->sew]);
+        mark_vs_dirty(s);
+        gen_set_label(over);
+        return true;
+    }
+    return false;
+}
+
 #define TH_TRANS_STUB(NAME)                                \
 static bool trans_##NAME(DisasContext *s, arg_##NAME *a)   \
 {                                                          \
     return require_thv(s);                                 \
 }
 
-TH_TRANS_STUB(th_vid_v)
 TH_TRANS_STUB(th_vext_x_v)
 TH_TRANS_STUB(th_vmv_s_x)
 TH_TRANS_STUB(th_vfmv_f_s)
