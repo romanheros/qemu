@@ -393,6 +393,33 @@ static void riscv_cpu_disable_priv_spec_isa_exts(RISCVCPU *cpu)
     }
 }
 
+static void th_cpu_validate_v(CPURISCVState *env, RISCVCPUConfig *cfg,
+                                 Error **errp)
+{
+    if (!is_power_of_2(cfg->vlen)) {
+        error_setg(errp, "XTheadVector extension VLEN must be power of 2");
+        return;
+    }
+
+    if (cfg->vlen < 32) {
+        error_setg(errp,
+                   "XTheadVector extension VLEN must be "
+                   "greater than or equal to 32");
+    }
+
+    if (!is_power_of_2(cfg->elen)) {
+        error_setg(errp, "XTheadVector extension ELEN must be power of 2");
+        return;
+    }
+
+    if (cfg->vlen < cfg->elen) {
+        error_setg(errp,
+                   "XTheadVector extension VLEN must be "
+                   "greater than or equal to ELEN");
+        return;
+    }
+}
+
 static void riscv_cpu_update_named_features(RISCVCPU *cpu)
 {
     cpu->cfg.zic64b = cpu->cfg.cbom_blocksize == 64 &&
@@ -521,6 +548,21 @@ void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
     if (riscv_has_ext(env, RVD) && !riscv_has_ext(env, RVF)) {
         error_setg(errp, "D extension requires F extension");
         return;
+    }
+
+    if (cpu->cfg.ext_xtheadvector && riscv_has_ext(env, RVV)) {
+        error_setg(errp, "XTheadVector extension is incompatible with "
+                         "RVV extension");
+        return;
+    }
+
+    if (cpu->cfg.ext_xtheadvector) {
+        th_cpu_validate_v(env, &cpu->cfg, &local_err);
+        if (local_err != NULL) {
+            error_propagate(errp, local_err);
+            return;
+        }
+        cpu_cfg_ext_auto_update(cpu, CPU_CFG_OFFSET(ext_zve64d), true);
     }
 
     if (riscv_has_ext(env, RVV)) {

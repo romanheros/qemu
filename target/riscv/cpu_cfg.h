@@ -137,6 +137,7 @@ struct RISCVCPUConfig {
     bool ext_xtheadmempair;
     bool ext_xtheadsync;
     bool ext_xtheadmaee;
+    bool ext_xtheadvector;
     bool ext_XVentanaCondOps;
 
     uint32_t pmu_mask;
@@ -178,7 +179,7 @@ static inline bool has_xthead_p(const RISCVCPUConfig *cfg)
            cfg->ext_xtheadfmemidx || cfg->ext_xtheadfmv ||
            cfg->ext_xtheadmac || cfg->ext_xtheadmemidx ||
            cfg->ext_xtheadmempair || cfg->ext_xtheadsync ||
-           cfg->ext_xtheadmaee;
+           cfg->ext_xtheadmaee || cfg->ext_xtheadvector;
 }
 
 #define MATERIALISE_EXT_PREDICATE(ext) \
