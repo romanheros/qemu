@@ -805,6 +805,26 @@ void riscv_add_satp_mode_properties(Object *obj);
 bool riscv_cpu_accelerator_compatible(RISCVCPU *cpu);
 
 /* CSR function table */
+RISCVException fs(CPURISCVState *env, int csrno);
+RISCVException vs(CPURISCVState *env, int csrno);
+RISCVException any(CPURISCVState *env, int csrno);
+RISCVException smode(CPURISCVState *env, int csrno);
+RISCVException read_fcsr(CPURISCVState *env, int csrno,
+                         target_ulong *val);
+RISCVException write_fcsr(CPURISCVState *env, int csrno,
+                          target_ulong val);
+RISCVException read_vtype(CPURISCVState *env, int csrno,
+                          target_ulong *val);
+RISCVException read_mstatus(CPURISCVState *env, int csrno,
+                            target_ulong *val);
+RISCVException write_mstatus(CPURISCVState *env, int csrno,
+                             target_ulong val);
+RISCVException write_sstatus(CPURISCVState *env, int csrno,
+                             target_ulong val);
+RISCVException read_sstatus(CPURISCVState *env, int csrno,
+                            target_ulong *val);
+RISCVException read_vcsr(CPURISCVState *env, int csrno, target_ulong *val);
+RISCVException write_vcsr(CPURISCVState *env, int csrno, target_ulong val);
 extern riscv_csr_operations th_csr_ops[CSR_TABLE_SIZE];
 extern riscv_csr_operations csr_ops[CSR_TABLE_SIZE];
 

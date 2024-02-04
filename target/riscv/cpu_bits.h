@@ -903,4 +903,21 @@ typedef enum RISCVException {
 
 #define TH_MXSTATUS_MAEE_SHIFT  21
 #define TH_MXSTATUS_MAEE        (0x1 << TH_MXSTATUS_MAEE_SHIFT)
+
+#define TH_MSTATUS_VS     0x01800000
+
+#define TH_FSR_VXRM_SHIFT      9
+#define TH_FSR_VXRM            (0x3 << TH_FSR_VXRM_SHIFT)
+
+#define TH_FSR_VXSAT_SHIFT     8
+#define TH_FSR_VXSAT           (0x1 << TH_FSR_VXSAT_SHIFT)
+
+#define TH_VTYPE_LMUL_SHIFT    0
+#define TH_VTYPE_LMUL          (0x3 << TH_VTYPE_LMUL_SHIFT)
+
+#define TH_VTYPE_SEW_SHIFT     2
+#define TH_VTYPE_SEW           (0x7 << TH_VTYPE_SEW_SHIFT)
+
+#define TH_VTYPE_CLEAR_SHIFT   5
+#define TH_VTYPE_CLEAR         (0x7 << TH_VTYPE_CLEAR_SHIFT)
 #endif

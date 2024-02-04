@@ -914,7 +914,7 @@ static void riscv_cpu_validate_profiles(RISCVCPU *cpu)
 
 static inline bool th_csr_p(const RISCVCPUConfig *cfg)
 {
-    return cfg->ext_xtheadmaee;
+    return cfg->ext_xtheadmaee || cfg->ext_xtheadvector;
 }
 
 void riscv_tcg_cpu_register_vendor_csr(RISCVCPU *cpu)
